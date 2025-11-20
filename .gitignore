@@ -1,0 +1,18 @@
+# Build outputs
+*.exe
+*.dll
+*.o
+*.obj
+
+# GLFW/GLAD
+src/glad.c  # If you don't want to commit generated code
+lib/*.dll  # Windows DLLs
+
+# IDE
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
