@@ -1,0 +1,225 @@
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <iostream>
+
+#include "Camera.h"
+#include "World.h"
+#include "Enemy.h"
+#include "Shooter.h"
+#include "Shader.h"
+#include "TextRenderer.h"
+
+int playerHealth = 100;
+int score = 0;
+int ammo = 30;
+
+// Forward declarations
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void processInput(GLFWwindow* window);
+unsigned int createCubeVAO();
+
+int SCR_WIDTH = 1200;
+int SCR_HEIGHT = 800;
+
+int main() {
+    glfwInit();
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "FPS - CROSSHAIR FIXED!", nullptr, nullptr);
+    if (!window) { std::cerr << "Failed GLFW\n"; glfwTerminate(); return -1; }
+    glfwMakeContextCurrent(window);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        std::cerr << "Failed GLAD\n"; return -1;
+    }
+
+    glEnable(GL_DEPTH_TEST);
+    glfwSwapInterval(1);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, mouse_callback);
+
+    Camera camera(glm::vec3(0.0f, 2.0f, 5.0f));
+    glfwSetWindowUserPointer(window, &camera);
+
+    // MAIN 3D SHADER
+    Shader shader3D("resources/basic.vert", "resources/basic.frag");
+    
+    // NEW: CROSSHAIR 2D SHADER
+    Shader shaderCrosshair("resources/crosshair.vert", "resources/crosshair.frag");
+
+    unsigned int cubeVAO = createCubeVAO();
+
+    // CROSSHAIR VAO (2D positions)
+    unsigned int crosshairVAO, crosshairVBO;
+    float crosshairVerts[] = {
+        -0.02f,  0.0f,    // Horizontal line left
+         0.02f,  0.0f,    // Horizontal line right
+         0.0f, -0.02f,    // Vertical line bottom
+         0.0f,  0.02f     // Vertical line top
+    };
+    glGenVertexArrays(1, &crosshairVAO);
+    glGenBuffers(1, &crosshairVBO);
+    glBindVertexArray(crosshairVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, crosshairVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(crosshairVerts), crosshairVerts, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    World world;
+    world.generate();
+
+    EnemyManager enemies;
+    enemies.spawn(glm::vec3(-3,1.5,-1), glm::vec3(1,0.2,0.2));  // RED
+    enemies.spawn(glm::vec3( 3,1.5,-1), glm::vec3(0.2,1,0.2));  // GREEN
+    enemies.spawn(glm::vec3( 0,1.5,-2), glm::vec3(1,0.2,1));    // MAGENTA
+
+    glm::mat4 projection = glm::perspective(glm::radians(60.0f), 
+                                            (float)SCR_WIDTH/SCR_HEIGHT, 0.1f, 100.0f);
+
+    bool canShoot = true;
+
+    while (!glfwWindowShouldClose(window)) {
+        static float lastFrame = 0.0;
+        processInput(window);
+        float currentFrame = static_cast<float>(glfwGetTime());
+        float deltaTime    = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+        camera.physics(deltaTime);
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && canShoot) {
+            Shooter::fire(camera, world, enemies);
+            canShoot = false;
+        }
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
+            canShoot = true;
+
+        glClearColor(0.5f, 0.8f, 1.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // 3D RENDERING
+        shader3D.use();
+        glm::mat4 view = camera.getViewMatrix();
+        glm::mat4 VP = projection * view;
+        world.render(cubeVAO, VP, shader3D.ID);
+        enemies.render(cubeVAO, VP, shader3D.ID);
+
+        enemies.update(deltaTime, camera.position);  // MOVEMENT
+        enemies.attackPlayer(camera.position, playerHealth, deltaTime);
+        TextRenderer hudRenderer(SCR_WIDTH, SCR_HEIGHT);
+        hudRenderer.RenderHUD(playerHealth, score, ammo, SCR_WIDTH, SCR_HEIGHT);
+        //CROSSHAIR (2D OVERLAY)
+        glDisable(GL_DEPTH_TEST);
+        shaderCrosshair.use();  //2D SHADER
+        glBindVertexArray(crosshairVAO);
+        glDrawArrays(GL_LINES, 0, 4);  // 2 lines (4 vertices)
+        glBindVertexArray(0);
+        glEnable(GL_DEPTH_TEST);
+
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+
+    // Cleanup
+    glDeleteVertexArrays(1, &cubeVAO);
+    glDeleteVertexArrays(1, &crosshairVAO);
+    glDeleteBuffers(1, &crosshairVBO);
+    glfwTerminate();
+    return 0;
+}
+
+// ------------------- CALLBACKS & createCubeVAO (KEEP EXACTLY AS YOU HAVE) -------------------
+void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+    SCR_WIDTH = width;
+    SCR_HEIGHT = height;
+    glViewport(0, 0, width, height);
+}
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+    static float lastX = SCR_WIDTH / 2.0f;
+    static float lastY = SCR_HEIGHT / 2.0f;
+    static bool firstMouse = true;
+
+    if (firstMouse) {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos;
+    lastX = xpos;
+    lastY = ypos;
+
+    Camera* camera = static_cast<Camera*>(glfwGetWindowUserPointer(window));
+    camera->processMouse(xoffset, yoffset);
+}
+
+void processInput(GLFWwindow* window) {
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+
+    Camera* camera = static_cast<Camera*>(glfwGetWindowUserPointer(window));
+    static float lastFrame = 0.0f;
+    float currentFrame = (float)glfwGetTime();
+    float deltaTime = currentFrame - lastFrame;
+    lastFrame = currentFrame;
+    bool hasjumped = false;
+
+    //jump 
+    if(glfwGetKey(window,GLFW_KEY_SPACE)==GLFW_PRESS) {camera->jump(); hasjumped =true;}
+    else hasjumped = false;
+    
+    //move with both wasd or up,down,left,right
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS || glfwGetKey(window,GLFW_KEY_UP) == GLFW_PRESS) camera->processKeyboard(0, deltaTime,hasjumped);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS || glfwGetKey(window,GLFW_KEY_DOWN) == GLFW_PRESS) camera->processKeyboard(1, deltaTime,hasjumped);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS || glfwGetKey(window,GLFW_KEY_LEFT) == GLFW_PRESS) camera->processKeyboard(2, deltaTime,hasjumped);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS || glfwGetKey(window,GLFW_KEY_RIGHT) == GLFW_PRESS) camera->processKeyboard(3, deltaTime,hasjumped);
+    
+    
+}
+
+unsigned int createCubeVAO() {
+    float vertices[] = {
+        -0.5f, -0.5f, -0.5f,
+         0.5f, -0.5f, -0.5f,
+         0.5f,  0.5f, -0.5f,
+        -0.5f,  0.5f, -0.5f,
+        -0.5f, -0.5f,  0.5f,
+         0.5f, -0.5f,  0.5f,
+         0.5f,  0.5f,  0.5f,
+        -0.5f,  0.5f,  0.5f
+    };
+
+    unsigned int indices[] = {
+        0,1,2, 2,3,0,
+        4,5,6, 6,7,4,
+        0,3,7, 7,4,0,
+        1,2,6, 6,5,1,
+        0,1,5, 5,4,0,
+        3,2,6, 6,7,3
+    };
+
+    unsigned int VAO, VBO, EBO;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glBindVertexArray(0);
+    return VAO;
+}
