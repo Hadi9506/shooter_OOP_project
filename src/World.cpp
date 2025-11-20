@@ -44,7 +44,7 @@ void World::render(unsigned int VAO, const glm::mat4& VP, unsigned int shaderID)
         glm::mat4 mvp = VP * model;
 
         glUniformMatrix4fv(glGetUniformLocation(shaderID, "uMVP"), 1, GL_FALSE, &mvp[0][0]);
-        glUniform3fv(glGetUniformLocation(shaderID, "uColor"), 1, &c.color[0]);  // ← "uColor" NOT "objectColor"
+        glUniform3fv(glGetUniformLocation(shaderID, "uColor"), 1, &c.color[0]);  
 
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
     }

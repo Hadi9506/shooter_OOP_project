@@ -42,7 +42,7 @@ TextRenderer::TextRenderer(unsigned int width, unsigned int height) {
     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 8, nullptr, GL_DYNAMIC_DRAW);
 
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
-    glEnableVertexAttribArray(0);  // ← CRITICAL: WAS MISSING!
+    glEnableVertexAttribArray(0);  
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);

@@ -33,7 +33,6 @@ bool Shooter::rayAABB(const glm::vec3& orig, const glm::vec3& dir,
     t = tmin;
     return tmin > 0;
 }
-// Shooter.cpp  (replace the whole fire() function with this)
 void Shooter::fire(const Camera& cam, World& world, EnemyManager& enemies) {
     glm::vec3 rayOrigin = cam.position;
     glm::vec3 rayDir    = cam.front;
@@ -42,7 +41,7 @@ void Shooter::fire(const Camera& cam, World& world, EnemyManager& enemies) {
     float closest = 1e9f;
     int   hitItem = -1;
     for (size_t i = 0; i < world.cubes.size(); ++i) {
-        const Cube& cube = world.cubes[i];          // <-- declare here
+        const Cube& cube = world.cubes[i];
         if (!cube.isItem) continue;
         float t;
         if (rayAABB(rayOrigin, rayDir, cube, t) && t < closest) {
@@ -51,9 +50,9 @@ void Shooter::fire(const Camera& cam, World& world, EnemyManager& enemies) {
         }
     }
     if (hitItem != -1) {
-        const Cube& c = world.cubes[hitItem];       // <-- now c is defined
+        const Cube& c = world.cubes[hitItem];       // 
         Item::pickUp(world, c.id);
-        score += 5;                                 // <-- global score
+        score += 5;                                 // global score
         return;
     }
 

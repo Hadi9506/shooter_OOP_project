@@ -13,8 +13,7 @@ void EnemyManager::spawn(const glm::vec3& pos, const glm::vec3& col) {
     enemies.push_back({pos, col, 100.0f, 2.0f});
 }
 
-// NEW: Update enemy AI
-// EnemyManager.cpp
+//Update enemy AI
 void EnemyManager::update(float deltaTime, const glm::vec3& playerPos) {
     float limit = 20.0f; // world half-size
 
