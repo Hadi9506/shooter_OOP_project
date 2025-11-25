@@ -50,9 +50,9 @@ void Shooter::fire(const Camera& cam, World& world, EnemyManager& enemies) {
         }
     }
     if (hitItem != -1) {
-        const Cube& c = world.cubes[hitItem];       // 
+        const Cube& c = world.cubes[hitItem];
         Item::pickUp(world, c.id);
-        score += 5;                                 // global score
+        score += 5; // global score
         return;
     }
 
