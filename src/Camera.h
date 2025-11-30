@@ -23,7 +23,7 @@ public:
     Camera(glm::vec3 pos = glm::vec3(0.0f, 0.0f, 3.0f));
 
     glm::mat4 getViewMatrix() const;
-    void processKeyboard(int direction, float deltaTime,bool hasjumped); // 0=FWD,1=BACK,2=LEFT,3=RIGHT
+    void processKeyboard(int direction, float deltaTime); // 0=FWD,1=BACK,2=LEFT,3=RIGHT
     void processMouse(float xoffset, float yoffset);
     void physics(float deltaTime);
     void jump();

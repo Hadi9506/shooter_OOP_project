@@ -170,17 +170,15 @@ void processInput(GLFWwindow* window) {
     float currentFrame = (float)glfwGetTime();
     float deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
-    bool hasjumped = false;
 
     //jump 
-    if(glfwGetKey(window,GLFW_KEY_SPACE)==GLFW_PRESS) {camera->jump(); hasjumped =true;}
-    else hasjumped = false;
+    if(glfwGetKey(window,GLFW_KEY_SPACE)==GLFW_PRESS) camera->jump();
     
     //move with both wasd or up,down,left,right
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS || glfwGetKey(window,GLFW_KEY_UP) == GLFW_PRESS) camera->processKeyboard(0, deltaTime,hasjumped);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS || glfwGetKey(window,GLFW_KEY_DOWN) == GLFW_PRESS) camera->processKeyboard(1, deltaTime,hasjumped);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS || glfwGetKey(window,GLFW_KEY_LEFT) == GLFW_PRESS) camera->processKeyboard(2, deltaTime,hasjumped);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS || glfwGetKey(window,GLFW_KEY_RIGHT) == GLFW_PRESS) camera->processKeyboard(3, deltaTime,hasjumped);
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS || glfwGetKey(window,GLFW_KEY_UP) == GLFW_PRESS) camera->processKeyboard(0, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS || glfwGetKey(window,GLFW_KEY_DOWN) == GLFW_PRESS) camera->processKeyboard(1, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS || glfwGetKey(window,GLFW_KEY_LEFT) == GLFW_PRESS) camera->processKeyboard(2, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS || glfwGetKey(window,GLFW_KEY_RIGHT) == GLFW_PRESS) camera->processKeyboard(3, deltaTime);
     
     
 }

@@ -39,14 +39,22 @@ void Camera::updateVectors() {
     up    = glm::normalize(glm::cross(right, front));
 }
 
-void Camera::processKeyboard(int direction, float deltaTime ,bool hasjumped) {
+void Camera::processKeyboard(int direction, float deltaTime) {
     float velocity = speed * deltaTime;
+    
+    // Store current Y position before movement
+    float currentY = position.y;
+    
+    // Apply horizontal movement
     if (direction == 0) position += front * velocity;
     if (direction == 1) position -= front * velocity;
     if (direction == 2) position -= right * velocity;
     if (direction == 3) position += right * velocity;
-    //camera moves at constant y = 2 ie pkayer height and does not go outside the room and player not jumps
-    if (position.y != 2.0 && !hasjumped) position.y = 2.0;
+    
+    // Restore Y position - let physics handle vertical movement
+    position.y = currentY;
+    
+    // Apply world boundary constraints
     float limit = 19.0f;
     if (position.x < -limit) position.x = -limit;
     if (position.x >  limit) position.x =  limit;
