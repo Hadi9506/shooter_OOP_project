@@ -1,26 +1,27 @@
-#include "start_Screen.h"
+#include "end_Screen.h"
 
-// ===================== START BUTTON IMPLEMENTATION =====================
-StartButton::StartButton(int buttonId, glm::vec2 pos, glm::vec2 sz, glm::vec3 col, glm::vec3 hovCol, glm::vec3 textCol, std::string lbl)
+// ===================== END BUTTON IMPLEMENTATION =====================
+EndButton::EndButton(int buttonId, glm::vec2 pos, glm::vec2 sz, glm::vec3 col, glm::vec3 hovCol, glm::vec3 textCol, std::string lbl)
     : id(buttonId), position(pos), size(sz), color(col), hoverColor(hovCol), textColor(textCol), label(lbl), isHovered(false) {}
 
-bool StartButton::isMouseOver(glm::vec2 mousePos) const {
+bool EndButton::isMouseOver(glm::vec2 mousePos) const {
     return mousePos.x >= position.x - size.x / 2 &&
            mousePos.x <= position.x + size.x / 2 &&
            mousePos.y >= position.y - size.y / 2 &&
            mousePos.y <= position.y + size.y / 2;
 }
 
-// ===================== START SCREEN IMPLEMENTATION =====================
-StartScreen::StartScreen(float width, float height)
-    : screenWidth(width), screenHeight(height), mousePos(0.0f), lastClickedButton(-1), mousePressed(false) {
+// ===================== END SCREEN IMPLEMENTATION =====================
+EndScreen::EndScreen(float width, float height)
+    : screenWidth(width), screenHeight(height), mousePos(0.0f), lastClickedButton(-1), mousePressed(false), 
+      playerWon(false), finalScore(0) {
     initShaders();
     createQuadVAO();
     createButtons();
 }
 
 // ===================== SHADER CREATION =====================
-void StartScreen::initShaders() {
+void EndScreen::initShaders() {
     const char* vertexShaderSource = R"(
         #version 330 core
         layout(location = 0) in vec2 position;
@@ -53,7 +54,7 @@ void StartScreen::initShaders() {
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cerr << "Vertex Shader Compilation Failed: " << infoLog << std::endl;
+        std::cerr << "End Screen - Vertex Shader Compilation Failed: " << infoLog << std::endl;
     }
     
     unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -63,7 +64,7 @@ void StartScreen::initShaders() {
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        std::cerr << "Fragment Shader Compilation Failed: " << infoLog << std::endl;
+        std::cerr << "End Screen - Fragment Shader Compilation Failed: " << infoLog << std::endl;
     }
     
     shaderProgram = glCreateProgram();
@@ -74,7 +75,7 @@ void StartScreen::initShaders() {
     glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
     if (!success) {
         glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        std::cerr << "Shader Program Linking Failed: " << infoLog << std::endl;
+        std::cerr << "End Screen - Shader Program Linking Failed: " << infoLog << std::endl;
     }
     
     glDeleteShader(vertexShader);
@@ -82,7 +83,7 @@ void StartScreen::initShaders() {
 }
 
 // ===================== CREATE QUAD VAO =====================
-void StartScreen::createQuadVAO() {
+void EndScreen::createQuadVAO() {
     float quadVertices[] = {
         -1.0f,  1.0f,
          1.0f,  1.0f,
@@ -106,36 +107,36 @@ void StartScreen::createQuadVAO() {
     glBindVertexArray(0);
 }
 
-// ===================== CREATE START MENU BUTTONS (2 BUTTONS ONLY) =====================
-void StartScreen::createButtons() {
+// ===================== CREATE END MENU BUTTONS =====================
+void EndScreen::createButtons() {
     buttons.clear();
     
     float centerX = screenWidth / 2;
     float centerY = screenHeight / 2;
     
-    // START/PLAY Button
-    buttons.push_back(StartButton(
-        0, glm::vec2(centerX, centerY - 60),
+    // PLAY AGAIN Button
+    buttons.push_back(EndButton(
+        0, glm::vec2(centerX, centerY + 80),
         glm::vec2(300, 80),
         glm::vec3(0.2f, 0.8f, 0.3f),      // Green
         glm::vec3(0.3f, 1.0f, 0.4f),      // Bright Green
         glm::vec3(1.0f, 1.0f, 1.0f),      // White text
-        "START GAME"
+        "PLAY AGAIN"
     ));
     
-    // EXIT Button
-    buttons.push_back(StartButton(
-        1, glm::vec2(centerX, centerY + 60),
+    // MAIN MENU Button
+    buttons.push_back(EndButton(
+        1, glm::vec2(centerX, centerY + 180),
         glm::vec2(300, 80),
         glm::vec3(0.9f, 0.2f, 0.2f),      // Red
         glm::vec3(1.0f, 0.3f, 0.3f),      // Bright Red
         glm::vec3(1.0f, 1.0f, 1.0f),      // White text
-        "EXIT GAME"
+        "MAIN MENU"
     ));
 }
 
 // ===================== UPDATE MOUSE POSITION =====================
-void StartScreen::updateMouse(double xpos, double ypos) {
+void EndScreen::updateMouse(double xpos, double ypos) {
     mousePos = glm::vec2(xpos, ypos);
     
     for (auto& button : buttons) {
@@ -144,17 +145,17 @@ void StartScreen::updateMouse(double xpos, double ypos) {
 }
 
 // ===================== HANDLE MOUSE PRESS =====================
-void StartScreen::handleMousePress() {
+void EndScreen::handleMousePress() {
     mousePressed = true;
 }
 
 // ===================== HANDLE MOUSE RELEASE =====================
-void StartScreen::handleMouseRelease() {
+void EndScreen::handleMouseRelease() {
     mousePressed = false;
 }
 
 // ===================== HANDLE BUTTON CLICK =====================
-int StartScreen::handleButtonClick() {
+int EndScreen::handleButtonClick() {
     if (!mousePressed) return -1;
     
     for (const auto& button : buttons) {
@@ -167,8 +168,14 @@ int StartScreen::handleButtonClick() {
     return -1;
 }
 
+// ===================== SET GAME RESULT =====================
+void EndScreen::setGameResult(bool won, int score) {
+    playerWon = won;
+    finalScore = score;
+}
+
 // ===================== RENDER RECTANGLE =====================
-void StartScreen::renderRectangle(glm::vec2 position, glm::vec2 size, glm::vec3 color) {
+void EndScreen::renderRectangle(glm::vec2 position, glm::vec2 size, glm::vec3 color) {
     glm::mat4 projection = glm::ortho(0.0f, screenWidth, screenHeight, 0.0f, -1.0f, 1.0f);
     glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(position.x, position.y, 0.0f));
     model = glm::scale(model, glm::vec3(size.x / 2, size.y / 2, 1.0f));
@@ -184,29 +191,38 @@ void StartScreen::renderRectangle(glm::vec2 position, glm::vec2 size, glm::vec3 
 }
 
 // ===================== RENDER BUTTON =====================
-void StartScreen::renderButton(const StartButton& button) {
+void EndScreen::renderButton(const EndButton& button) {
     glm::vec3 buttonColor = button.isHovered ? button.hoverColor : button.color;
     renderRectangle(button.position, button.size, buttonColor);
 }
 
 // ===================== RENDER TEXT =====================
-void StartScreen::renderText(const std::string& text, float x, float y, float scale, glm::vec3 color) {
-    // Placeholder for text rendering
+void EndScreen::renderText(const std::string& text, float x, float y, float scale, glm::vec3 color) {
+    // Text rendering - simple console output for now
+    std::cout << text << std::endl;
 }
 
 // ===================== RENDER TITLE =====================
-void StartScreen::renderTitle() {
-    // Title background panel
-    renderRectangle(glm::vec2(screenWidth / 2, 100), glm::vec2(screenWidth * 0.8f, 150), glm::vec3(0.1f, 0.15f, 0.3f));
+void EndScreen::renderTitle() {
+    // Dark background overlay
+    renderRectangle(glm::vec2(screenWidth / 2, screenHeight / 2), 
+                   glm::vec2(screenWidth, screenHeight), 
+                   glm::vec3(0.0f, 0.0f, 0.0f));
+    
+    // End screen panel
+    glm::vec3 panelColor = playerWon ? glm::vec3(0.1f, 0.3f, 0.1f) : glm::vec3(0.3f, 0.1f, 0.1f);
+    renderRectangle(glm::vec2(screenWidth / 2, screenHeight / 2 - 50), 
+                   glm::vec2(700, 500), 
+                   panelColor);
 }
 
-// ===================== RENDER START SCREEN =====================
-void StartScreen::renderStartScreen() {
-    glClearColor(0.05f, 0.05f, 0.1f, 1.0f);
+// ===================== RENDER END SCREEN =====================
+void EndScreen::renderEndScreen(int score, bool won) {
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_DEPTH_TEST);
     
-    // Render title
+    // Render background and panel
     renderTitle();
     
     // Render all buttons
@@ -218,7 +234,7 @@ void StartScreen::renderStartScreen() {
 }
 
 // ===================== DESTRUCTOR =====================
-StartScreen::~StartScreen() {
+EndScreen::~EndScreen() {
     glDeleteVertexArrays(1, &quadVAO);
     glDeleteBuffers(1, &quadVBO);
     glDeleteProgram(shaderProgram);
