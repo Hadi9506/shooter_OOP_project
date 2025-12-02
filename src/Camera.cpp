@@ -40,7 +40,7 @@ void Camera::updateVectors() {
 }
 
 void Camera::processKeyboard(int direction, float deltaTime) {
-    float velocity = speed * deltaTime;
+    float velocity = speed * deltaTime *1.5;
     
     // Store current Y position before movement
     float currentY = position.y;

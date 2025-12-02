@@ -12,9 +12,41 @@
 #include "TextRenderer.h"
 #include "GUI/main_gui.h"
 
+
 int playerHealth = 100;
 int score = 0;
-int ammo = 30;
+int currentAmmo = 30;       // Ammo in currently loaded mag
+int reserveMags = 0;         // Number of spare mags
+int partialMagAmmo = 0;      // Ammo in ejected mag
+
+
+//reload helper 
+void reload(int mag_size,int &reserved_mags,int &partial_ammos,int &current_ammos){
+        // Calculate how many bullets needed to fill current mag
+        int needed = mag_size - current_ammos;
+        // If mag is already full: do nothing
+        if (needed == 0) return;
+        // 1. Use partial ammo first
+        int use_partial = (partial_ammos < needed) ? partial_ammos : needed;;
+        current_ammos += use_partial;
+        partial_ammos -= use_partial;
+        needed -= use_partial;
+
+        // 2. If still not full, use full reserve magazines
+        if (needed > 0 && reserved_mags > 0) {
+            // Take 1 full mag
+            reserved_mags--;
+            // Fill as much as needed from that full mag
+            int give = (mag_size < needed) ? mag_size : needed;;
+            current_ammos += give;
+            needed -= give;
+            // If mag wasn’t fully used, leftover becomes partial ammo
+            if (give < mag_size) {
+                partial_ammos += (mag_size - give);
+            }
+        }
+    }
+
 
 // Forward declarations
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -89,6 +121,8 @@ int main() {
                                             (float)SCR_WIDTH/SCR_HEIGHT, 0.1f, 100.0f);
 
     bool canShoot = true;
+    bool enterpressed = false;
+    bool lclick = false;
 
     // Initialize GUI
     initializeGUI(SCR_WIDTH, SCR_HEIGHT);
@@ -110,7 +144,7 @@ int main() {
                 glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
                 playerHealth = 100;
                 score = 0;
-                ammo = 30;
+                currentAmmo = 30;
             }
             if (clicked == 1) {
                 // SETTINGS button clicked
@@ -125,14 +159,26 @@ int main() {
             processInput(window);
             camera.physics(deltaTime);
             
-            if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && canShoot) {
+            if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS && canShoot && !lclick) {
                 Shooter::fire(camera, world, enemies);
-                ammo--;
-                if (ammo < 0) ammo = 30;
                 canShoot = false;
+                lclick = true;
             }
-            if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE)
+            if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE){
                 canShoot = true;
+                lclick = false;
+            }
+
+
+            if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS && canShoot && !enterpressed) {
+                Shooter::fire(camera, world, enemies);
+                canShoot = false;
+                enterpressed = true;
+            }
+            if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_RELEASE){
+                canShoot = true;
+                enterpressed = false;
+            }
 
             // PAUSE LOGIC - P KEY
             if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
@@ -160,7 +206,7 @@ int main() {
             enemies.attackPlayer(camera.position, playerHealth, deltaTime);
             
             TextRenderer hudRenderer(SCR_WIDTH, SCR_HEIGHT);
-            hudRenderer.RenderHUD(playerHealth, score, ammo, SCR_WIDTH, SCR_HEIGHT);
+            hudRenderer.RenderHUD(playerHealth, score, currentAmmo,reserveMags, SCR_WIDTH, SCR_HEIGHT);
             
             // CROSSHAIR (2D OVERLAY)
             glDisable(GL_DEPTH_TEST);
@@ -257,11 +303,13 @@ void processInput(GLFWwindow* window) {
     float currentFrame = (float)glfwGetTime();
     float deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
-    bool hasjumped = false;
 
     //jump 
-    if(glfwGetKey(window,GLFW_KEY_SPACE)==GLFW_PRESS) {camera->jump(); hasjumped =true;}
-    else hasjumped = false;
+    if(glfwGetKey(window,GLFW_KEY_SPACE)==GLFW_PRESS) camera->jump();
+
+    //reload logic 
+    if(glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) 
+        reload(30,reserveMags,partialMagAmmo,currentAmmo);
     
     //move with both wasd or up,down,left,right
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS || glfwGetKey(window,GLFW_KEY_UP) == GLFW_PRESS) camera->processKeyboard(0, deltaTime);

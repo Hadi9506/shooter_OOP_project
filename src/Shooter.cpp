@@ -4,7 +4,8 @@
 
 extern int playerHealth;
 extern int score;
-extern int ammo;
+extern int currentAmmo;
+extern int reserveMags;
 
 bool Shooter::rayAABB(const glm::vec3& orig, const glm::vec3& dir,
                       const Cube& cube, float& t) {
@@ -53,6 +54,7 @@ void Shooter::fire(const Camera& cam, World& world, EnemyManager& enemies) {
         const Cube& c = world.cubes[hitItem];
         Item::pickUp(world, c.id);
         score += 5; // global score
+        reserveMags++;
         return;
     }
 
@@ -60,18 +62,18 @@ void Shooter::fire(const Camera& cam, World& world, EnemyManager& enemies) {
     int   enemyID;
     float enemyDist;
     if (enemies.hitTest(rayOrigin, rayDir, enemyID, enemyDist)) {
-        if (ammo > 0) {
-            ammo--;
+        if (currentAmmo > 0) {
+            currentAmmo--;
             score += 10;
             enemies.enemies[enemyID].health -= 34.0f;
         if (enemies.enemies[enemyID].health <= 0) {
             score += 50;
             enemies.enemies.erase(enemies.enemies.begin() + enemyID);
         }}
-        else ammo =0;
+        else currentAmmo =0;
         return;
     }
 
-    if (ammo > 0) ammo--;
-    else ammo = 0;
+    if (currentAmmo > 0) currentAmmo--;
+    else currentAmmo = 0;
 }
