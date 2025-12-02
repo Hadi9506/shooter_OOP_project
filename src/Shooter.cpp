@@ -62,16 +62,16 @@ void Shooter::fire(const Camera& cam, World& world, EnemyManager& enemies) {
     int   enemyID;
     float enemyDist;
     if (enemies.hitTest(rayOrigin, rayDir, enemyID, enemyDist)) {
-        if (currentAmmo > 0) {
-            currentAmmo--;
-            score += 10;
-            enemies.enemies[enemyID].health -= 34.0f;
-        if (enemies.enemies[enemyID].health <= 0) {
-            score += 50;
-            enemies.enemies.erase(enemies.enemies.begin() + enemyID);
-        }}
-        else currentAmmo =0;
-        return;
+        std::cout << "HIT ENEMY " << enemyID << " at distance " << enemyDist << "\n";
+        
+        // Apply damage
+        enemies.getAllEnemies()[enemyID].takeDamage(25.0f);
+        
+        if (!enemies.getAllEnemies()[enemyID].alive) {
+            extern int score;
+            score += 100;
+            std::cout << "Enemy killed! Score: " << score << "\n";
+        }
     }
 
     if (currentAmmo > 0) currentAmmo--;
