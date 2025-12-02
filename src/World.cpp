@@ -27,6 +27,27 @@ void World::generate() {
     cubes.push_back({glm::vec3(-10,1.5, 10), glm::vec3(0.8f), glm::vec3(1,1,0.3), true,4});
 }
 
+// ✅ NEW: Regenerate items when picked up
+void World::regenerateItems() {
+    // Remove all items
+    auto it = cubes.begin();
+    while (it != cubes.end()) {
+        if (it->isItem) {
+            it = cubes.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    
+    // Respawn items at fixed locations
+    cubes.push_back({glm::vec3(-10,1.5,-10), glm::vec3(0.8f), glm::vec3(1,0.3,0.3), true,1});
+    cubes.push_back({glm::vec3( 10,1.5,-10), glm::vec3(0.8f), glm::vec3(0.3,1,0.3), true,2});
+    cubes.push_back({glm::vec3( 10,1.5, 10), glm::vec3(0.8f), glm::vec3(0.3,0.3,1), true,3});
+    cubes.push_back({glm::vec3(-10,1.5, 10), glm::vec3(0.8f), glm::vec3(1,1,0.3), true,4});
+    
+    std::cout << "Items regenerated\n";
+}
+
 void World::render(unsigned int VAO, const glm::mat4& VP, unsigned int shaderID) const {
     glBindVertexArray(VAO);
     

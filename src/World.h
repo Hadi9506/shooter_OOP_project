@@ -15,5 +15,6 @@ class World {
 public:
     std::vector<Cube> cubes;
     void generate();
+    void regenerateItems();  // ✅ NEW: Respawn items
     void render(unsigned int VAO, const glm::mat4& VP, unsigned int shaderID) const;
 };
