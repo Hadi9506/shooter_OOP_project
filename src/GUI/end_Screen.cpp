@@ -114,9 +114,9 @@ void EndScreen::createButtons() {
     float centerX = screenWidth / 2;
     float centerY = screenHeight / 2;
     
-    // PLAY AGAIN Button
+    // PLAY AGAIN Button (GREEN)
     buttons.push_back(EndButton(
-        0, glm::vec2(centerX, centerY + 80),
+        0, glm::vec2(centerX, centerY - 60),
         glm::vec2(300, 80),
         glm::vec3(0.2f, 0.8f, 0.3f),      // Green
         glm::vec3(0.3f, 1.0f, 0.4f),      // Bright Green
@@ -124,9 +124,9 @@ void EndScreen::createButtons() {
         "PLAY AGAIN"
     ));
     
-    // MAIN MENU Button
+    // MAIN MENU Button (RED)
     buttons.push_back(EndButton(
-        1, glm::vec2(centerX, centerY + 180),
+        1, glm::vec2(centerX, centerY + 60),
         glm::vec2(300, 80),
         glm::vec3(0.9f, 0.2f, 0.2f),      // Red
         glm::vec3(1.0f, 0.3f, 0.3f),      // Bright Red
@@ -209,7 +209,7 @@ void EndScreen::renderTitle() {
                    glm::vec2(screenWidth, screenHeight), 
                    glm::vec3(0.0f, 0.0f, 0.0f));
     
-    // End screen panel
+    // End screen panel (Green if won, Red if lost)
     glm::vec3 panelColor = playerWon ? glm::vec3(0.1f, 0.3f, 0.1f) : glm::vec3(0.3f, 0.1f, 0.1f);
     renderRectangle(glm::vec2(screenWidth / 2, screenHeight / 2 - 50), 
                    glm::vec2(700, 500), 

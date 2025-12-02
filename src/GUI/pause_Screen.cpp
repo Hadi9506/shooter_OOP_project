@@ -106,16 +106,16 @@ void PauseScreen::createQuadVAO() {
     glBindVertexArray(0);
 }
 
-// ===================== CREATE PAUSE MENU BUTTONS =====================
+// ===================== CREATE PAUSE MENU BUTTONS (3 BUTTONS NOW) =====================
 void PauseScreen::createButtons() {
     buttons.clear();
     
     float centerX = screenWidth / 2;
     float centerY = screenHeight / 2;
     
-    // RESUME Button
+    // RESUME Button (GREEN) - Top
     buttons.push_back(PauseButton(
-        0, glm::vec2(centerX, centerY - 80),
+        0, glm::vec2(centerX, centerY - 100),
         glm::vec2(300, 80),
         glm::vec3(0.2f, 0.8f, 0.3f),      // Green
         glm::vec3(0.3f, 1.0f, 0.4f),      // Bright Green
@@ -123,9 +123,19 @@ void PauseScreen::createButtons() {
         "RESUME"
     ));
     
-    // QUIT Button
+    // RESTART Button (BLUE) - Middle
     buttons.push_back(PauseButton(
-        1, glm::vec2(centerX, centerY + 50),
+        1, glm::vec2(centerX, centerY),
+        glm::vec2(300, 80),
+        glm::vec3(0.2f, 0.3f, 0.9f),      // Blue
+        glm::vec3(0.3f, 0.4f, 1.0f),      // Bright Blue
+        glm::vec3(1.0f, 1.0f, 1.0f),      // White text
+        "RESTART"
+    ));
+    
+    // MAIN MENU Button (RED) - Bottom
+    buttons.push_back(PauseButton(
+        2, glm::vec2(centerX, centerY + 100),
         glm::vec2(300, 80),
         glm::vec3(0.9f, 0.2f, 0.2f),      // Red
         glm::vec3(1.0f, 0.3f, 0.3f),      // Bright Red
@@ -203,8 +213,15 @@ void PauseScreen::renderTitle() {
     
     // Pause panel background
     renderRectangle(glm::vec2(screenWidth / 2, screenHeight / 2), 
-                   glm::vec2(600, 400), 
+                   glm::vec2(600, 450), 
                    glm::vec3(0.1f, 0.15f, 0.3f));
+    
+    // PAUSED title bar
+    renderRectangle(glm::vec2(screenWidth / 2, 80), 
+                   glm::vec2(600, 80), 
+                   glm::vec3(0.2f, 0.25f, 0.4f));
+    
+    // PAUSED Text (rendered via TextRenderer in main)
 }
 
 // ===================== RENDER PAUSE SCREEN =====================
