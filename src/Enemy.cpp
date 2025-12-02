@@ -158,3 +158,9 @@ void EnemyManager::attackPlayer(glm::vec3 playerPos, int& playerHealth, float de
         // You can add screen later
     }
 }
+
+// ===================== CLEAR ALL ENEMIES =====================
+void EnemyManager::clear() {
+    enemies.clear();
+    std::cout << "All enemies cleared\n";
+}

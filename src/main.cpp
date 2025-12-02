@@ -137,6 +137,10 @@ int main() {
         if (currentGameScreen == GameScreen::START_MENU) {
             renderStartMenuScreen();
             
+            // ✅ Render start menu text
+            TextRenderer startTextRenderer(SCR_WIDTH, SCR_HEIGHT);
+            startTextRenderer.RenderStartText(SCR_WIDTH, SCR_HEIGHT);
+            
             int clicked = handleStartMenuClick();
             if (clicked == 0) {
                 // PLAY button clicked
@@ -145,13 +149,17 @@ int main() {
                 playerHealth = 100;
                 score = 0;
                 currentAmmo = 30;
+                reserveMags = 0;
+                partialMagAmmo = 0;
+                
+                // Respawn enemies
+                enemies.clear();
+                enemies.spawn(glm::vec3(-3,1.5,-1), glm::vec3(1,0.2,0.2));
+                enemies.spawn(glm::vec3( 3,1.5,-1), glm::vec3(0.2,1,0.2));
+                enemies.spawn(glm::vec3( 0,1.5,-2), glm::vec3(1,0.2,1));
             }
             if (clicked == 1) {
-                // SETTINGS button clicked
-                std::cout << "Settings clicked\n";
-            }
-            if (clicked == 2) {
-                // EXIT button clicked
+                // EXIT GAME button clicked (RED) - Close window
                 glfwSetWindowShouldClose(window, true);
             }
         }
@@ -168,7 +176,6 @@ int main() {
                 canShoot = true;
                 lclick = false;
             }
-
 
             if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS && canShoot && !enterpressed) {
                 Shooter::fire(camera, world, enemies);
@@ -206,20 +213,21 @@ int main() {
             enemies.attackPlayer(camera.position, playerHealth, deltaTime);
             
             TextRenderer hudRenderer(SCR_WIDTH, SCR_HEIGHT);
-            hudRenderer.RenderHUD(playerHealth, score, currentAmmo,reserveMags, SCR_WIDTH, SCR_HEIGHT);
+            hudRenderer.RenderHUD(playerHealth, score, currentAmmo, reserveMags, SCR_WIDTH, SCR_HEIGHT);
             
             // CROSSHAIR (2D OVERLAY)
             glDisable(GL_DEPTH_TEST);
-            shaderCrosshair.use();  //2D SHADER
+            shaderCrosshair.use();
             glBindVertexArray(crosshairVAO);
-            glDrawArrays(GL_LINES, 0, 4);  // 2 lines (4 vertices)
+            glDrawArrays(GL_LINES, 0, 4);
             glBindVertexArray(0);
             glEnable(GL_DEPTH_TEST);
 
             // Check game over
             if (playerHealth <= 0) {
-                currentGameScreen = GameScreen::START_MENU;
+                currentGameScreen = GameScreen::END_SCREEN;
                 glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+                std::cout << "You Died! Final Score: " << score << "\n";
             }
         }
         else if (currentGameScreen == GameScreen::PAUSE_MENU) {
@@ -227,20 +235,93 @@ int main() {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             glDisable(GL_DEPTH_TEST);
             
-            // Resume on P press
+            renderPauseMenuScreen();
+            
+            // ✅ Render pause menu text
+            TextRenderer pauseTextRenderer(SCR_WIDTH, SCR_HEIGHT);
+            pauseTextRenderer.RenderPauseText(SCR_WIDTH, SCR_HEIGHT);
+            
+            int clicked = handlePauseMenuClick();
+            if (clicked == 0) {
+                // RESUME button clicked
+                currentGameScreen = GameScreen::GAMEPLAY;
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+                pauseKeyPressed = true;
+            }
+            else if (clicked == 1) {
+                // RESTART button clicked (BLUE) - Reset everything
+                currentGameScreen = GameScreen::GAMEPLAY;
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+                pauseKeyPressed = true;
+                
+                // Reset game state
+                playerHealth = 100;
+                score = 0;
+                currentAmmo = 30;
+                reserveMags = 0;
+                partialMagAmmo = 0;
+                
+                // Respawn enemies
+                enemies.clear();
+                enemies.spawn(glm::vec3(-3,1.5,-1), glm::vec3(1,0.2,0.2));
+                enemies.spawn(glm::vec3( 3,1.5,-1), glm::vec3(0.2,1,0.2));
+                enemies.spawn(glm::vec3( 0,1.5,-2), glm::vec3(1,0.2,1));
+                
+                std::cout << "Game Restarted\n";
+            }
+            else if (clicked == 2) {
+                // MAIN MENU button clicked (RED)
+                currentGameScreen = GameScreen::START_MENU;
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+                pauseKeyPressed = false;
+            }
+            
+            // Also allow P key to resume
             if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
                 if (!pauseKeyPressed) {
                     currentGameScreen = GameScreen::GAMEPLAY;
                     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
                     pauseKeyPressed = true;
-                    std::cout << "Game Resumed\n";
                 }
             } else {
                 pauseKeyPressed = false;
             }
             
-            // ESC to go back to menu
-            if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+            glEnable(GL_DEPTH_TEST);
+        }
+        else if (currentGameScreen == GameScreen::END_SCREEN) {
+            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glDisable(GL_DEPTH_TEST);
+            
+            renderEndMenuScreen();
+            
+            // ✅ Render end screen text
+            TextRenderer endTextRenderer(SCR_WIDTH, SCR_HEIGHT);
+            bool playerWon = false;  // Can add win condition logic later
+            endTextRenderer.RenderEndText(score, playerWon, SCR_WIDTH, SCR_HEIGHT);
+            
+            int clicked = handleEndMenuClick();
+            if (clicked == 0) {
+                // PLAY AGAIN button clicked (GREEN)
+                currentGameScreen = GameScreen::GAMEPLAY;
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+                playerHealth = 100;
+                score = 0;
+                currentAmmo = 30;
+                reserveMags = 0;
+                partialMagAmmo = 0;
+                
+                // Respawn enemies
+                enemies.clear();
+                enemies.spawn(glm::vec3(-3,1.5,-1), glm::vec3(1,0.2,0.2));
+                enemies.spawn(glm::vec3( 3,1.5,-1), glm::vec3(0.2,1,0.2));
+                enemies.spawn(glm::vec3( 0,1.5,-2), glm::vec3(1,0.2,1));
+                
+                std::cout << "Starting new game...\n";
+            }
+            if (clicked == 1) {
+                // MAIN MENU button clicked (RED)
                 currentGameScreen = GameScreen::START_MENU;
                 glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             }
