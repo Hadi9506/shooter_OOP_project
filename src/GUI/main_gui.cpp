@@ -1,140 +1,152 @@
 #include "main_gui.h"
 
-StartScreen* g_startScreen = nullptr;
-PauseScreen* g_pauseScreen = nullptr;
-EndScreen* g_endScreen = nullptr;
+// Global pointers to screen objects
+StartScreen* g_startScreen = nullptr;      // Start menu screen
+PauseScreen* g_pauseScreen = nullptr;      // Pause menu screen
+EndScreen* g_endScreen = nullptr;          // End game screen
 
-// ===================== INITIALIZE GUI =====================
+// Initialize GUI system with screen dimensions
+// Creates all menu screens
 void initializeGUI(float screenWidth, float screenHeight) {
     g_startScreen = new StartScreen(screenWidth, screenHeight);
     g_pauseScreen = new PauseScreen(screenWidth, screenHeight);
     g_endScreen = new EndScreen(screenWidth, screenHeight);
 }
 
-// ===================== RENDER START MENU SCREEN =====================
+// Render start menu screen
+// Displays main menu with play and exit buttons
 void renderStartMenuScreen() {
     if (g_startScreen) {
         g_startScreen->renderStartScreen();
     }
 }
 
-// ===================== RENDER PAUSE MENU SCREEN =====================
+// Render pause menu screen
+// Displays pause menu with resume, restart, and main menu buttons
 void renderPauseMenuScreen() {
     if (g_pauseScreen) {
         g_pauseScreen->renderPauseScreen();
     }
 }
 
-// ===================== RENDER END MENU SCREEN =====================
+// Render end menu screen
+// Displays game over screen with final score
 void renderEndMenuScreen() {
     if (g_endScreen) {
         g_endScreen->renderEndScreen(0, false);
     }
 }
 
-// ===================== HANDLE START MENU CLICK =====================
+// Check for start menu button click
+// Returns button ID (0=Play, 1=Exit) or -1 if no click
 int handleStartMenuClick() {
     if (!g_startScreen) return -1;
     return g_startScreen->handleButtonClick();
 }
 
-// ===================== HANDLE PAUSE MENU CLICK =====================
+// Check for pause menu button click
+// Returns button ID (0=Resume, 1=Restart, 2=Main Menu) or -1 if no click
 int handlePauseMenuClick() {
     if (!g_pauseScreen) return -1;
     return g_pauseScreen->handleButtonClick();
 }
 
-// ===================== HANDLE END MENU CLICK =====================
+// Check for end menu button click
+// Returns button ID (0=Play Again, 1=Main Menu) or -1 if no click
 int handleEndMenuClick() {
     if (!g_endScreen) return -1;
     return g_endScreen->handleButtonClick();
 }
 
-// ===================== UPDATE START MENU MOUSE =====================
+// Update start menu mouse position and hover states
 void updateStartMenuMouse(double xpos, double ypos) {
     if (g_startScreen) {
         g_startScreen->updateMouse(xpos, ypos);
     }
 }
 
-// ===================== UPDATE PAUSE MENU MOUSE =====================
+// Update pause menu mouse position and hover states
 void updatePauseMenuMouse(double xpos, double ypos) {
     if (g_pauseScreen) {
         g_pauseScreen->updateMouse(xpos, ypos);
     }
 }
 
-// ===================== UPDATE END MENU MOUSE =====================
+// Update end menu mouse position and hover states
 void updateEndMenuMouse(double xpos, double ypos) {
     if (g_endScreen) {
         g_endScreen->updateMouse(xpos, ypos);
     }
 }
 
-// ===================== HANDLE START MENU MOUSE PRESS =====================
+// Called when mouse button is pressed on start menu
 void handleStartMenuMousePress() {
     if (g_startScreen) {
         g_startScreen->handleMousePress();
     }
 }
 
-// ===================== HANDLE START MENU MOUSE RELEASE =====================
+// Called when mouse button is released on start menu
 void handleStartMenuMouseRelease() {
     if (g_startScreen) {
         g_startScreen->handleMouseRelease();
     }
 }
 
-// ===================== HANDLE PAUSE MENU MOUSE PRESS =====================
+// Called when mouse button is pressed on pause menu
 void handlePauseMenuMousePress() {
     if (g_pauseScreen) {
         g_pauseScreen->handleMousePress();
     }
 }
 
-// ===================== HANDLE PAUSE MENU MOUSE RELEASE =====================
+// Called when mouse button is released on pause menu
 void handlePauseMenuMouseRelease() {
     if (g_pauseScreen) {
         g_pauseScreen->handleMouseRelease();
     }
 }
 
-// ===================== HANDLE END MENU MOUSE PRESS =====================
+// Called when mouse button is pressed on end menu
 void handleEndMenuMousePress() {
     if (g_endScreen) {
         g_endScreen->handleMousePress();
     }
 }
 
-// ===================== HANDLE END MENU MOUSE RELEASE =====================
+// Called when mouse button is released on end menu
 void handleEndMenuMouseRelease() {
     if (g_endScreen) {
         g_endScreen->handleMouseRelease();
     }
 }
 
-// ===================== SET END SCREEN RESULT =====================
+// Set end screen result (won/lost) and final score for display
 void setEndScreenResult(bool won, int score) {
     if (g_endScreen) {
         g_endScreen->setGameResult(won, score);
     }
 }
 
-// ===================== MOUSE CALLBACK =====================
+// GLFW mouse movement callback
+// Routes mouse position to all active menu screens
 void guiMouseCallback(GLFWwindow* window, double xpos, double ypos) {
     updateStartMenuMouse(xpos, ypos);
     updatePauseMenuMouse(xpos, ypos);
     updateEndMenuMouse(xpos, ypos);
 }
 
-// ===================== CLICK CALLBACK =====================
+// GLFW mouse button callback
+// Routes mouse clicks to all active menu screens
 void guiClickCallback(GLFWwindow* window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
         if (action == GLFW_PRESS) {
+            // Mouse button pressed
             handleStartMenuMousePress();
             handlePauseMenuMousePress();
             handleEndMenuMousePress();
         } else if (action == GLFW_RELEASE) {
+            // Mouse button released
             handleStartMenuMouseRelease();
             handlePauseMenuMouseRelease();
             handleEndMenuMouseRelease();
@@ -142,7 +154,7 @@ void guiClickCallback(GLFWwindow* window, int button, int action, int mods) {
     }
 }
 
-// ===================== CLEANUP GUI =====================
+// Clean up and deallocate all GUI resources
 void cleanupGUI() {
     if (g_startScreen) {
         delete g_startScreen;
