@@ -113,7 +113,7 @@ void StartScreen::createButtons() {
     float centerX = screenWidth / 2;
     float centerY = screenHeight / 2;
     
-    // START/PLAY Button
+    // START/PLAY Button (GREEN)
     buttons.push_back(StartButton(
         0, glm::vec2(centerX, centerY - 60),
         glm::vec2(300, 80),
@@ -123,7 +123,7 @@ void StartScreen::createButtons() {
         "START GAME"
     ));
     
-    // EXIT Button
+    // EXIT Button (RED)
     buttons.push_back(StartButton(
         1, glm::vec2(centerX, centerY + 60),
         glm::vec2(300, 80),
@@ -197,7 +197,14 @@ void StartScreen::renderText(const std::string& text, float x, float y, float sc
 // ===================== RENDER TITLE =====================
 void StartScreen::renderTitle() {
     // Title background panel
-    renderRectangle(glm::vec2(screenWidth / 2, 100), glm::vec2(screenWidth * 0.8f, 150), glm::vec3(0.1f, 0.15f, 0.3f));
+    renderRectangle(glm::vec2(screenWidth / 2, 100), 
+                   glm::vec2(screenWidth * 0.8f, 150), 
+                   glm::vec3(0.1f, 0.15f, 0.3f));
+    
+    // Background gradient effect
+    renderRectangle(glm::vec2(screenWidth / 2, screenHeight / 2), 
+                   glm::vec2(screenWidth, screenHeight), 
+                   glm::vec3(0.05f, 0.05f, 0.1f));
 }
 
 // ===================== RENDER START SCREEN =====================
