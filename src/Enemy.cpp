@@ -7,13 +7,15 @@
 #include <GLFW/glfw3.h>
 #include <time.h>
 
+// Static timer for debug output
 static auto lastEnemyDebug = std::chrono::steady_clock::now();
 
-// ===================== ENEMY CONSTRUCTOR =====================
+// Constructor: initialize enemy with position and color
 Enemy::Enemy(glm::vec3 pos, glm::vec3 col)
     : position(pos), color(col), health(100.0f), alive(true),
       patrolTarget(pos), patrolTimer(0.0f), speed(3.0f), chasing(false), attackTimer(0.0f) {}
 
+// Reduce enemy health and mark as dead if health reaches 0
 void Enemy::takeDamage(float damage) {
     health -= damage;
     if (health <= 0) {
@@ -21,79 +23,82 @@ void Enemy::takeDamage(float damage) {
     }
 }
 
+// Update enemy state (placeholder - handled by manager)
 void Enemy::update(float deltaTime, glm::vec3 playerPos) {
-    // Placeholder - handled by EnemyManager
+    // Actual logic in EnemyManager
 }
 
+// Render enemy (placeholder - handled by manager)
 void Enemy::render(unsigned int cubeVAO, glm::mat4 VP, unsigned int shaderID) {
-    // Placeholder - handled by EnemyManager
+    // Actual rendering in EnemyManager
 }
 
-// ===================== ENEMY MANAGER CONSTRUCTOR =====================
+// Constructor: initialize enemy manager with default attack values
 EnemyManager::EnemyManager()
     : attackCooldown(1.0f), attackDamage(15.0f), attackRange(2.0f) {}
 
+// Destructor: clean up enemies
 EnemyManager::~EnemyManager() {
     enemies.clear();
 }
 
-// ===================== SPAWN ENEMY =====================
-// ✅ FIXED: Removed 'const', now matches header
+// Add a new enemy to the game world
 void EnemyManager::spawn(glm::vec3 pos, glm::vec3 col) {
     enemies.push_back(Enemy(pos, col));
 }
 
-// ===================== UPDATE ENEMIES =====================
-// ✅ FIXED: Removed 'const', changed parameter types to match header
+// Update all enemies each frame
+// Handles AI behavior including patrol and chase
 void EnemyManager::update(float deltaTime, glm::vec3 playerPos) {
-    float limit = 20.0f; // world half-size
+    float limit = 20.0f;  // World boundary
 
     for (auto& e : enemies) {
-        if (!e.alive) continue;
+        if (!e.alive) continue;  // Skip dead enemies
         
         float distToPlayer = glm::distance(e.position, playerPos);
 
-        // CHASE PLAYER
+        // If player is close, chase them
         if (distToPlayer < 18.0f) {
             e.chasing = true;
             glm::vec3 dir = glm::normalize(playerPos - e.position);
             e.position += dir * e.speed * deltaTime;
         }
+        // Otherwise patrol randomly
         else {
-            // PATROL MODE
             e.chasing = false;
             e.patrolTimer += deltaTime;
 
-            // PICK NEW RANDOM POINT IN 40×40 WORLD
+            // Pick new patrol target every 5 seconds or when reached
             if (glm::distance(e.position, e.patrolTarget) < 0.5f || e.patrolTimer > 5.0f) {
                 e.patrolTarget = glm::vec3(
-                    -limit + (rand() % int(limit*200)) / 100.0f,
+                    -limit + (rand() % int(limit * 200)) / 100.0f,
                     1.8f,
-                    -limit + (rand() % int(limit*200)) / 100.0f
+                    -limit + (rand() % int(limit * 200)) / 100.0f
                 );
                 e.patrolTimer = 0.0f;
             }
 
-            // Move toward the patrol point
+            // Move toward patrol target at reduced speed
             glm::vec3 dir = glm::normalize(e.patrolTarget - e.position);
             e.position += dir * e.speed * deltaTime * 0.7f;
         }
 
-        // KEEP ENEMIES INSIDE WORLD
+        // Keep enemies within world bounds
         if (e.position.x < -limit) e.position.x = -limit;
-        if (e.position.x >  limit) e.position.x =  limit;
+        if (e.position.x > limit) e.position.x = limit;
         if (e.position.z < -limit) e.position.z = -limit;
-        if (e.position.z >  limit) e.position.z =  limit;
+        if (e.position.z > limit) e.position.z = limit;
 
-        e.position.y = 1.8f; // fixed height
+        // Keep enemy at fixed height
+        e.position.y = 1.8f;
     }
 }
 
-// ===================== RENDER ENEMIES =====================
-// ✅ FIXED: Removed 'const', changed glm::mat4 to const reference
+// Render all living enemies with health bars
 void EnemyManager::render(unsigned int VAO, glm::mat4 VP, unsigned int shaderID) {
     glBindVertexArray(VAO);
 
+    // Debug output every 2 seconds
     auto now = std::chrono::steady_clock::now();
     if (std::chrono::duration<float>(now - lastEnemyDebug).count() > 2.0f) {
         std::cout << "[DEBUG] Rendering " << enemies.size() << " enemies\n";
@@ -103,7 +108,7 @@ void EnemyManager::render(unsigned int VAO, glm::mat4 VP, unsigned int shaderID)
     for (const auto& e : enemies) {
         if (!e.alive) continue;
         
-        // --- Render Enemy Body ---
+        // Render enemy body as cube
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, e.position);
         model = glm::scale(model, glm::vec3(1.5f));
@@ -113,7 +118,7 @@ void EnemyManager::render(unsigned int VAO, glm::mat4 VP, unsigned int shaderID)
         glUniform3fv(glGetUniformLocation(shaderID, "uColor"), 1, &e.color[0]);
         glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
-        // --- Render Health Bar ---
+        // Render health bar above enemy
         float healthRatio = e.health / 100.0f;
         if (healthRatio > 0) {
             glm::mat4 barModel = glm::translate(model, glm::vec3(0, 1.2f, 0));
@@ -128,8 +133,7 @@ void EnemyManager::render(unsigned int VAO, glm::mat4 VP, unsigned int shaderID)
     glBindVertexArray(0);
 }
 
-// ===================== HIT TEST (RAY-AABB) =====================
-// ✅ NEW: Implemented missing hitTest function
+// Ray-AABB intersection test for shooting enemies
 bool EnemyManager::hitTest(const glm::vec3& orig, const glm::vec3& dir, int& outID, float& outDist) {
     outDist = 1e9f;
     int best = -1;
@@ -138,14 +142,16 @@ bool EnemyManager::hitTest(const glm::vec3& orig, const glm::vec3& dir, int& out
         if (!enemies[i].alive) continue;
         
         const Enemy& e = enemies[i];
+        // Create bounding box around enemy
         glm::vec3 min = e.position - glm::vec3(0.75f);
         glm::vec3 max = e.position + glm::vec3(0.75f);
 
-        // Ray-AABB intersection
+        // Ray-AABB intersection on X axis
         float tmin = (min.x - orig.x) / (dir.x != 0 ? dir.x : 1e-6f);
         float tmax = (max.x - orig.x) / (dir.x != 0 ? dir.x : 1e-6f);
         if (tmin > tmax) std::swap(tmin, tmax);
 
+        // Ray-AABB intersection on Y axis
         float ty_min = (min.y - orig.y) / (dir.y != 0 ? dir.y : 1e-6f);
         float ty_max = (max.y - orig.y) / (dir.y != 0 ? dir.y : 1e-6f);
         if (ty_min > ty_max) std::swap(ty_min, ty_max);
@@ -154,6 +160,7 @@ bool EnemyManager::hitTest(const glm::vec3& orig, const glm::vec3& dir, int& out
         if (ty_min > tmin) tmin = ty_min;
         if (ty_max < tmax) tmax = ty_max;
 
+        // Ray-AABB intersection on Z axis
         float tz_min = (min.z - orig.z) / (dir.z != 0 ? dir.z : 1e-6f);
         float tz_max = (max.z - orig.z) / (dir.z != 0 ? dir.z : 1e-6f);
         if (tz_min > tz_max) std::swap(tz_min, tz_max);
@@ -161,6 +168,7 @@ bool EnemyManager::hitTest(const glm::vec3& orig, const glm::vec3& dir, int& out
         if (tmin > tz_max || tz_min > tmax) continue;
         if (tz_min > tmin) tmin = tz_min;
 
+        // Find closest hit enemy
         if (tmin > 0 && tmin < outDist) {
             outDist = tmin;
             best = (int)i;
@@ -174,48 +182,51 @@ bool EnemyManager::hitTest(const glm::vec3& orig, const glm::vec3& dir, int& out
     return false;
 }
 
-// ===================== ATTACK PLAYER =====================
+// Apply damage from enemies to player
 void EnemyManager::attackPlayer(glm::vec3 playerPos, int& playerHealth, float deltaTime) {
     for (auto& e : enemies) {
         if (!e.alive) continue;
         
-        // ✅ FIXED: Changed e.pos to e.position
+        // Calculate distance to player
         float dist = glm::distance(e.position, playerPos);
         const float MELEE_RANGE = 1.8f;
         const float ATTACK_COOLDOWN = 1.0f;
 
-        // Start cooldown timer when in range
+        // If player is in melee range, attack
         if (dist < MELEE_RANGE) {
             e.attackTimer += deltaTime;
             if (e.attackTimer >= ATTACK_COOLDOWN) {
                 int damage = 15;
                 playerHealth -= damage;
                 std::cout << "Enemy hit you! -" << damage << " HP (Now: " << playerHealth << ")\n";
-                e.attackTimer = 0.0f;
+                e.attackTimer = 0.0f;  // Reset cooldown
             }
-        } else {
+        } 
+        // Otherwise reset cooldown
+        else {
             e.attackTimer = 0.0f;
         }
     }
 
+    // Clamp health to 0
     if (playerHealth <= 0) {
         playerHealth = 0;
         std::cout << "=== GAME OVER ===\n";
     }
 }
 
-// ===================== CLEAR ALL ENEMIES =====================
+// Remove all enemies from the game
 void EnemyManager::clear() {
     enemies.clear();
     std::cout << "All enemies cleared\n";
 }
 
-// ===================== GET ALL ENEMIES =====================
+// Return reference to enemy vector
 std::vector<Enemy>& EnemyManager::getAllEnemies() {
     return enemies;
 }
 
-// ===================== GET ENEMY COUNT =====================
+// Return number of enemies
 int EnemyManager::getEnemyCount() const {
     return enemies.size();
 }

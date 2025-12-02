@@ -5,13 +5,14 @@
 #include <sstream>
 #include <iomanip>
 
-// Declare the external variables
+// External game state variables for HUD display
 extern int currentAmmo;
 extern int reserveMags;
 extern int partialMagAmmo;
 extern int score;
 
-// ✅ Simple bitmap font for rendering
+// Simple bitmap font for character rendering
+// Each character is represented as 8x8 bits for pixel rendering
 bool charBitmap[128][8] = {
     // Space (32)
     {0,0,0,0,0,0,0,0},
@@ -36,8 +37,9 @@ bool charBitmap[128][8] = {
     {0,0,0,1,1,0,0,0},
 };
 
+// Initialize text renderer with shader and buffers
 TextRenderer::TextRenderer(unsigned int width, unsigned int height) {
-    // Simple 2D colored bar shader
+    // Vertex shader for 2D rendering
     const char* vs = R"(
         #version 330 core
         layout(location = 0) in vec2 pos;
@@ -45,6 +47,7 @@ TextRenderer::TextRenderer(unsigned int width, unsigned int height) {
         void main() { gl_Position = proj * vec4(pos, 0.0, 1.0); }
     )";
 
+    // Fragment shader for colored rectangles
     const char* fs = R"(
         #version 330 core
         uniform vec3 color;
@@ -52,10 +55,12 @@ TextRenderer::TextRenderer(unsigned int width, unsigned int height) {
         void main() { fragColor = vec4(color, 1.0); }
     )";
 
+    // Compile vertex shader
     unsigned int v = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(v, 1, &vs, nullptr);
     glCompileShader(v);
 
+    // Check for vertex shader compilation errors
     int success;
     char infoLog[512];
     glGetShaderiv(v, GL_COMPILE_STATUS, &success);
@@ -64,21 +69,25 @@ TextRenderer::TextRenderer(unsigned int width, unsigned int height) {
         std::cerr << "TextRenderer Vertex Shader Error: " << infoLog << std::endl;
     }
 
+    // Compile fragment shader
     unsigned int f = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(f, 1, &fs, nullptr);
     glCompileShader(f);
 
+    // Check for fragment shader compilation errors
     glGetShaderiv(f, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(f, 512, nullptr, infoLog);
         std::cerr << "TextRenderer Fragment Shader Error: " << infoLog << std::endl;
     }
 
+    // Link shader program
     shaderID = glCreateProgram();
     glAttachShader(shaderID, v);
     glAttachShader(shaderID, f);
     glLinkProgram(shaderID);
 
+    // Check for program linking errors
     glGetProgramiv(shaderID, GL_LINK_STATUS, &success);
     if (!success) {
         glGetProgramInfoLog(shaderID, 512, nullptr, infoLog);
@@ -88,13 +97,14 @@ TextRenderer::TextRenderer(unsigned int width, unsigned int height) {
     glDeleteShader(v);
     glDeleteShader(f);
 
-    // VAO / VBO for rectangles
+    // Create vertex array object for rendering rectangles
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 8, nullptr, GL_DYNAMIC_DRAW);
 
+    // Set up vertex attribute pointer
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
     glEnableVertexAttribArray(0);
 
@@ -102,18 +112,20 @@ TextRenderer::TextRenderer(unsigned int width, unsigned int height) {
     glBindVertexArray(0);
 }
 
+// Clean up shader and buffer resources
 TextRenderer::~TextRenderer() {
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
     glDeleteProgram(shaderID);
 }
 
-// ✅ Helper: Draw Rectangle
+// Draw a filled rectangle on screen
 void drawRect(float x, float y, float w, float h, glm::vec3 color, unsigned int shaderID, unsigned int VAO, unsigned int VBO, glm::mat4 proj) {
     glUseProgram(shaderID);
     glUniformMatrix4fv(glGetUniformLocation(shaderID, "proj"), 1, GL_FALSE, &proj[0][0]);
     glUniform3fv(glGetUniformLocation(shaderID, "color"), 1, &color[0]);
 
+    // Define rectangle vertices as triangle strip
     float verts[] = {
         x,     y,
         x + w, y,
@@ -127,7 +139,7 @@ void drawRect(float x, float y, float w, float h, glm::vec3 color, unsigned int 
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
-// ✅ Draw a single character using bitmap
+// Draw a single character using bitmap font
 void drawCharacter(char c, float x, float y, float scale, glm::vec3 color, unsigned int shaderID, unsigned int VAO, unsigned int VBO, glm::mat4 proj) {
     float cellW = 8.0f * scale;
     float cellH = 8.0f * scale;
@@ -135,11 +147,11 @@ void drawCharacter(char c, float x, float y, float scale, glm::vec3 color, unsig
 
     // Get bitmap for character
     int charIdx = (int)c;
-    if (charIdx < 0 || charIdx > 127) charIdx = 32; // Default to space
+    if (charIdx < 0 || charIdx > 127) charIdx = 32;
     
     bool* bits = charBitmap[charIdx];
     
-    // Draw each pixel of the character
+    // Draw each pixel of the character as a small rectangle
     for (int row = 0; row < 8; row++) {
         for (int col = 0; col < 8; col++) {
             if (bits[row * 8 + col]) {
@@ -151,14 +163,14 @@ void drawCharacter(char c, float x, float y, float scale, glm::vec3 color, unsig
     }
 }
 
-// ✅ RENDER CHARACTER
+// Render a single character and advance the x position
 void TextRenderer::renderChar(char c, float& x, float y, float scale, glm::vec3 color, unsigned int screenW, unsigned int screenH) {
     glm::mat4 proj = glm::ortho(0.0f, (float)screenW, (float)screenH, 0.0f);
     drawCharacter(c, x, y, scale, color, shaderID, VAO, VBO, proj);
     x += 10.0f * scale;
 }
 
-// ✅ RENDER TEXT
+// Render text string on screen
 void TextRenderer::RenderText(const std::string& text, float x, float y, float scale, glm::vec3 color, unsigned int screenW, unsigned int screenH) {
     glDisable(GL_DEPTH_TEST);
     glUseProgram(shaderID);
@@ -171,7 +183,7 @@ void TextRenderer::RenderText(const std::string& text, float x, float y, float s
     glEnable(GL_DEPTH_TEST);
 }
 
-// ✅ RENDER HUD
+// Render in-game HUD with health, ammo, and score information
 void TextRenderer::RenderHUD(int health, int score, int ammo, int magz, unsigned int w, unsigned int h) {
     glDisable(GL_DEPTH_TEST);
     glUseProgram(shaderID);
@@ -186,7 +198,7 @@ void TextRenderer::RenderHUD(int health, int score, int ammo, int magz, unsigned
     float barY = h - 60.0f;
     float barH = 25.0f;
 
-    // === 1. HEALTH BAR (GREEN → RED) ===
+    // Draw health bar background (black)
     float healthBgVerts[] = {
         margin - 3,     barY + 3,
         margin + 203,   barY + 3,
@@ -197,8 +209,9 @@ void TextRenderer::RenderHUD(int health, int score, int ammo, int magz, unsigned
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(healthBgVerts), healthBgVerts);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
+    // Draw health bar fill (gradient from red to green)
     float healthPct = health / 100.0f;
-    glm::vec3 healthColor = glm::mix(glm::vec3(1,0,0), glm::vec3(0,1,0), healthPct);
+    glm::vec3 healthColor = glm::mix(glm::vec3(1, 0, 0), glm::vec3(0, 1, 0), healthPct);
     float healthW = 200.0f * healthPct;
     float healthVerts[] = {
         margin,     barY,
@@ -210,13 +223,13 @@ void TextRenderer::RenderHUD(int health, int score, int ammo, int magz, unsigned
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(healthVerts), healthVerts);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-    // === 2. AMMO BARS ===
+    // Draw ammo bars section
     float ammoStartX = margin + 230;
     float ammoBarW = 120.0f;
     float ammoBarH = 18.0f;
     float ammoSpacing = 22.0f;
 
-    // Current Mag (YELLOW)
+    // Current magazine ammo bar (yellow)
     float bar1Y = barY;
     float currentAmmoPct = (currentAmmo > 0) ? (currentAmmo / 30.0f) : 0.0f;
 
@@ -240,7 +253,7 @@ void TextRenderer::RenderHUD(int health, int score, int ammo, int magz, unsigned
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(bar1Verts), bar1Verts);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-    // Reserve Mags (WHITE blocks)
+    // Draw reserve magazines as white blocks
     float bar2Y = bar1Y - ammoSpacing;
     float magBlockW = 15.0f;
     float magBlockSpacing = 3.0f;
@@ -258,7 +271,7 @@ void TextRenderer::RenderHUD(int health, int score, int ammo, int magz, unsigned
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
 
-    // Partial Mag (ORANGE)
+    // Draw partial magazine ammo bar (orange)
     float bar3Y = bar2Y - ammoSpacing;
     float partialAmmoPct = (partialMagAmmo > 0) ? (partialMagAmmo / 30.0f) : 0.0f;
 
@@ -284,27 +297,25 @@ void TextRenderer::RenderHUD(int health, int score, int ammo, int magz, unsigned
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
 
-    // === 3. TEXT LABELS ===
-    // "HEALTH" label
+    // Draw text labels
     std::string healthLabel = "HEALTH";
     float labelX = margin;
     float labelY = barY + 35.0f;
     glUniform3f(glGetUniformLocation(shaderID, "color"), 1.0f, 1.0f, 1.0f);
     for (char c : healthLabel) {
-        drawCharacter(c, labelX, labelY, 0.5f, glm::vec3(1,1,1), shaderID, VAO, VBO, glm::ortho(0.0f, (float)w, (float)h, 0.0f));
+        drawCharacter(c, labelX, labelY, 0.5f, glm::vec3(1, 1, 1), shaderID, VAO, VBO, glm::ortho(0.0f, (float)w, (float)h, 0.0f));
         labelX += 6.0f;
     }
     
-    // "AMMO" label
     std::string ammoLabel = "AMMO";
     labelX = ammoStartX;
     labelY = barY + 35.0f;
     for (char c : ammoLabel) {
-        drawCharacter(c, labelX, labelY, 0.5f, glm::vec3(1,1,1), shaderID, VAO, VBO, glm::ortho(0.0f, (float)w, (float)h, 0.0f));
+        drawCharacter(c, labelX, labelY, 0.5f, glm::vec3(1, 1, 1), shaderID, VAO, VBO, glm::ortho(0.0f, (float)w, (float)h, 0.0f));
         labelX += 6.0f;
     }
 
-    // Score display (top right)
+    // Draw score in top right corner
     std::stringstream ss;
     ss << "SCORE:" << std::setw(6) << std::setfill('0') << score;
     std::string scoreStr = ss.str();
@@ -313,14 +324,14 @@ void TextRenderer::RenderHUD(int health, int score, int ammo, int magz, unsigned
     float scoreY = 20.0f;
     glUniform3f(glGetUniformLocation(shaderID, "color"), 1.0f, 1.0f, 0.0f);
     for (char c : scoreStr) {
-        drawCharacter(c, scoreX, scoreY, 0.6f, glm::vec3(1,1,0), shaderID, VAO, VBO, glm::ortho(0.0f, (float)w, (float)h, 0.0f));
+        drawCharacter(c, scoreX, scoreY, 0.6f, glm::vec3(1, 1, 0), shaderID, VAO, VBO, glm::ortho(0.0f, (float)w, (float)h, 0.0f));
         scoreX += 7.0f;
     }
 
     glEnable(GL_DEPTH_TEST);
 }
 
-// ✅ RENDER PAUSE TEXT
+// Render pause screen text
 void TextRenderer::RenderPauseText(unsigned int screenW, unsigned int screenH) {
     glDisable(GL_DEPTH_TEST);
     glUseProgram(shaderID);
@@ -328,21 +339,21 @@ void TextRenderer::RenderPauseText(unsigned int screenW, unsigned int screenH) {
     glm::mat4 proj = glm::ortho(0.0f, (float)screenW, (float)screenH, 0.0f);
     glUniformMatrix4fv(glGetUniformLocation(shaderID, "proj"), 1, GL_FALSE, &proj[0][0]);
 
-    // "PAUSED" title
+    // Draw PAUSED title in center
     std::string pausedText = "PAUSED";
     float textX = screenW / 2.0f - pausedText.length() * 5.0f;
     float textY = 60.0f;
 
     glUniform3f(glGetUniformLocation(shaderID, "color"), 1.0f, 1.0f, 1.0f);
     for (char c : pausedText) {
-        drawCharacter(c, textX, textY, 1.5f, glm::vec3(1,1,1), shaderID, VAO, VBO, proj);
+        drawCharacter(c, textX, textY, 1.5f, glm::vec3(1, 1, 1), shaderID, VAO, VBO, proj);
         textX += 15.0f;
     }
 
     glEnable(GL_DEPTH_TEST);
 }
 
-// ✅ RENDER START TEXT
+// Render start menu title text
 void TextRenderer::RenderStartText(unsigned int screenW, unsigned int screenH) {
     glDisable(GL_DEPTH_TEST);
     glUseProgram(shaderID);
@@ -350,21 +361,21 @@ void TextRenderer::RenderStartText(unsigned int screenW, unsigned int screenH) {
     glm::mat4 proj = glm::ortho(0.0f, (float)screenW, (float)screenH, 0.0f);
     glUniformMatrix4fv(glGetUniformLocation(shaderID, "proj"), 1, GL_FALSE, &proj[0][0]);
 
-    // Title
+    // Draw game title in cyan color
     std::string titleText = "SHOOTER GAME";
     float textX = screenW / 2.0f - titleText.length() * 7.0f;
     float textY = 80.0f;
 
-    glUniform3f(glGetUniformLocation(shaderID, "color"), 0.0f, 1.0f, 1.0f); // Cyan
+    glUniform3f(glGetUniformLocation(shaderID, "color"), 0.0f, 1.0f, 1.0f);
     for (char c : titleText) {
-        drawCharacter(c, textX, textY, 1.2f, glm::vec3(0,1,1), shaderID, VAO, VBO, proj);
+        drawCharacter(c, textX, textY, 1.2f, glm::vec3(0, 1, 1), shaderID, VAO, VBO, proj);
         textX += 12.0f;
     }
 
     glEnable(GL_DEPTH_TEST);
 }
 
-// ✅ RENDER END TEXT
+// Render end screen result and final score
 void TextRenderer::RenderEndText(int finalScore, bool won, unsigned int screenW, unsigned int screenH) {
     glDisable(GL_DEPTH_TEST);
     glUseProgram(shaderID);
@@ -372,7 +383,7 @@ void TextRenderer::RenderEndText(int finalScore, bool won, unsigned int screenW,
     glm::mat4 proj = glm::ortho(0.0f, (float)screenW, (float)screenH, 0.0f);
     glUniformMatrix4fv(glGetUniformLocation(shaderID, "proj"), 1, GL_FALSE, &proj[0][0]);
 
-    // Result text
+    // Draw game result text (you won or you died)
     std::string resultText = won ? "YOU WON" : "YOU DIED";
     glm::vec3 resultColor = won ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f);
 
@@ -385,7 +396,7 @@ void TextRenderer::RenderEndText(int finalScore, bool won, unsigned int screenW,
         textX += 16.0f;
     }
 
-    // Score display
+    // Draw final score
     std::stringstream ss;
     ss << "SCORE:" << finalScore;
     std::string scoreStr = ss.str();
@@ -394,13 +405,14 @@ void TextRenderer::RenderEndText(int finalScore, bool won, unsigned int screenW,
     textY = 200.0f;
     glUniform3f(glGetUniformLocation(shaderID, "color"), 1.0f, 1.0f, 0.0f);
     for (char c : scoreStr) {
-        drawCharacter(c, textX, textY, 1.2f, glm::vec3(1,1,0), shaderID, VAO, VBO, proj);
+        drawCharacter(c, textX, textY, 1.2f, glm::vec3(1, 1, 0), shaderID, VAO, VBO, proj);
         textX += 12.0f;
     }
 
     glEnable(GL_DEPTH_TEST);
 }
 
+// Get color for character (placeholder for future use)
 glm::vec3 TextRenderer::getCharColor(char c) {
     return glm::vec3(1.0f);
 }
