@@ -11,12 +11,13 @@
 #include "Shader.h"
 #include "TextRenderer.h"
 #include "GUI/main_gui.h"
+#include "Item.h"
 
 
 int playerHealth = 100;
 int score = 0;
-int currentAmmo = 30;       // Ammo in currently loaded mag
-int reserveMags = 0;         // Number of spare mags
+int currentAmmo = 30;
+int reserveMags = 0;
 int partialMagAmmo = 0;      // Ammo in ejected mag
 
 
@@ -117,8 +118,9 @@ int main() {
     enemies.spawn(glm::vec3( 3,1.5,-1), glm::vec3(0.2,1,0.2));  // GREEN
     enemies.spawn(glm::vec3( 0,1.5,-2), glm::vec3(1,0.2,1));    // MAGENTA
 
+    // ✅ FIXED: Aspect ratio calculation
     glm::mat4 projection = glm::perspective(glm::radians(60.0f), 
-                                            (float)SCR_WIDTH/SCR_HEIGHT, 0.1f, 100.0f);
+                                            (float)SCR_WIDTH/(float)SCR_HEIGHT, 0.1f, 100.0f);
 
     bool canShoot = true;
     bool enterpressed = false;
@@ -133,8 +135,16 @@ int main() {
         float deltaTime    = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
+        // ✅ Recalculate projection with dynamic aspect ratio
+        projection = glm::perspective(glm::radians(60.0f), 
+                                     (float)SCR_WIDTH/(float)SCR_HEIGHT, 0.1f, 100.0f);
+
         // SCREEN LOGIC
         if (currentGameScreen == GameScreen::START_MENU) {
+            glClearColor(0.05f, 0.05f, 0.1f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glDisable(GL_DEPTH_TEST);
+            
             renderStartMenuScreen();
             
             // ✅ Render start menu text
@@ -162,6 +172,7 @@ int main() {
                 // EXIT GAME button clicked (RED) - Close window
                 glfwSetWindowShouldClose(window, true);
             }
+            glEnable(GL_DEPTH_TEST);
         }
         else if (currentGameScreen == GameScreen::GAMEPLAY) {
             processInput(window);
@@ -267,6 +278,9 @@ int main() {
                 enemies.spawn(glm::vec3( 3,1.5,-1), glm::vec3(0.2,1,0.2));
                 enemies.spawn(glm::vec3( 0,1.5,-2), glm::vec3(1,0.2,1));
                 
+                // ✅ NEW: Regenerate items
+                world.regenerateItems();
+                
                 std::cout << "Game Restarted\n";
             }
             else if (clicked == 2) {
@@ -318,6 +332,9 @@ int main() {
                 enemies.spawn(glm::vec3( 3,1.5,-1), glm::vec3(0.2,1,0.2));
                 enemies.spawn(glm::vec3( 0,1.5,-2), glm::vec3(1,0.2,1));
                 
+                // ✅ NEW: Regenerate items
+                world.regenerateItems();
+                
                 std::cout << "Starting new game...\n";
             }
             if (clicked == 1) {
@@ -342,7 +359,7 @@ int main() {
     return 0;
 }
 
-// ------------------- CALLBACKS & createCubeVAO (KEEP EXACTLY AS YOU HAVE) -------------------
+// ✅ FIXED: Aspect ratio in framebuffer callback
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     SCR_WIDTH = width;
     SCR_HEIGHT = height;

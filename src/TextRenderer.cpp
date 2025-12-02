@@ -11,6 +11,31 @@ extern int reserveMags;
 extern int partialMagAmmo;
 extern int score;
 
+// ✅ Simple bitmap font for rendering
+bool charBitmap[128][8] = {
+    // Space (32)
+    {0,0,0,0,0,0,0,0},
+    // '!' (33)
+    {0,0,1,1,0,1,0,0},
+    // Digits 0-9 (48-57)
+    {1,1,1,1,1,1,1,1}, // 0
+    {0,1,0,1,1,0,1,0}, // 1
+    {1,0,1,1,0,1,1,1}, // 2
+    {1,0,1,1,1,1,1,1}, // 3
+    {1,1,1,0,0,1,0,1}, // 4
+    {1,1,0,1,1,0,1,1}, // 5
+    {1,1,0,1,1,1,1,1}, // 6
+    {1,0,1,0,1,0,0,1}, // 7
+    {1,1,1,1,1,1,1,1}, // 8
+    {1,1,1,1,0,1,1,1}, // 9
+    // ':' (58)
+    {0,1,0,0,0,1,0,0},
+    // '/' (47)
+    {0,0,1,0,1,1,0,0},
+    // '-' (45)
+    {0,0,0,1,1,0,0,0},
+};
+
 TextRenderer::TextRenderer(unsigned int width, unsigned int height) {
     // Simple 2D colored bar shader
     const char* vs = R"(
@@ -83,7 +108,7 @@ TextRenderer::~TextRenderer() {
     glDeleteProgram(shaderID);
 }
 
-// ===================== HELPER: Draw Rectangle =====================
+// ✅ Helper: Draw Rectangle
 void drawRect(float x, float y, float w, float h, glm::vec3 color, unsigned int shaderID, unsigned int VAO, unsigned int VBO, glm::mat4 proj) {
     glUseProgram(shaderID);
     glUniformMatrix4fv(glGetUniformLocation(shaderID, "proj"), 1, GL_FALSE, &proj[0][0]);
@@ -102,32 +127,38 @@ void drawRect(float x, float y, float w, float h, glm::vec3 color, unsigned int 
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
-// ===================== RENDER CHARACTER =====================
-void TextRenderer::renderChar(char c, float& x, float y, float scale, glm::vec3 color, unsigned int screenW, unsigned int screenH) {
-    glm::mat4 proj = glm::ortho(0.0f, (float)screenW, (float)screenH, 0.0f);
-    float charW = 16.0f * scale;
-    float charH = 24.0f * scale;
+// ✅ Draw a single character using bitmap
+void drawCharacter(char c, float x, float y, float scale, glm::vec3 color, unsigned int shaderID, unsigned int VAO, unsigned int VBO, glm::mat4 proj) {
+    float cellW = 8.0f * scale;
+    float cellH = 8.0f * scale;
+    float dotSize = 2.0f * scale;
 
-    // Simple pixel-based character rendering using rectangles
-    // This creates blocky letters for display
+    // Get bitmap for character
+    int charIdx = (int)c;
+    if (charIdx < 0 || charIdx > 127) charIdx = 32; // Default to space
     
-    if (c >= '0' && c <= '9') {
-        // Digit rendering - simple block representation
-        drawRect(x, y, charW, charH, color, shaderID, VAO, VBO, proj);
-    } else if (c >= 'A' && c <= 'Z') {
-        // Letter rendering - simple block representation
-        drawRect(x, y, charW, charH, color, shaderID, VAO, VBO, proj);
-    } else if (c == ' ') {
-        // Space - just move forward
-    } else if (c == '/' || c == ':' || c == '-') {
-        // Punctuation
-        drawRect(x, y, charW * 0.5f, charH, color, shaderID, VAO, VBO, proj);
+    bool* bits = charBitmap[charIdx];
+    
+    // Draw each pixel of the character
+    for (int row = 0; row < 8; row++) {
+        for (int col = 0; col < 8; col++) {
+            if (bits[row * 8 + col]) {
+                float px = x + col * dotSize;
+                float py = y + row * dotSize;
+                drawRect(px, py, dotSize, dotSize, color, shaderID, VAO, VBO, proj);
+            }
+        }
     }
-
-    x += charW + 2.0f;
 }
 
-// ===================== RENDER TEXT =====================
+// ✅ RENDER CHARACTER
+void TextRenderer::renderChar(char c, float& x, float y, float scale, glm::vec3 color, unsigned int screenW, unsigned int screenH) {
+    glm::mat4 proj = glm::ortho(0.0f, (float)screenW, (float)screenH, 0.0f);
+    drawCharacter(c, x, y, scale, color, shaderID, VAO, VBO, proj);
+    x += 10.0f * scale;
+}
+
+// ✅ RENDER TEXT
 void TextRenderer::RenderText(const std::string& text, float x, float y, float scale, glm::vec3 color, unsigned int screenW, unsigned int screenH) {
     glDisable(GL_DEPTH_TEST);
     glUseProgram(shaderID);
@@ -140,7 +171,7 @@ void TextRenderer::RenderText(const std::string& text, float x, float y, float s
     glEnable(GL_DEPTH_TEST);
 }
 
-// ===================== RENDER HUD =====================
+// ✅ RENDER HUD
 void TextRenderer::RenderHUD(int health, int score, int ammo, int magz, unsigned int w, unsigned int h) {
     glDisable(GL_DEPTH_TEST);
     glUseProgram(shaderID);
@@ -253,53 +284,43 @@ void TextRenderer::RenderHUD(int health, int score, int ammo, int magz, unsigned
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }
 
-    // === 3. SCORE TEXT ===
-    std::stringstream ss;
-    ss << std::setw(5) << std::setfill('0') << score;
-    std::string scoreStr = ss.str();
-
-    float textX = ammoStartX + ammoBarW + 30, textY = barY - 40;
-    float charW = 14.0f, charH = 20.0f;
-    float charSpacing = 2.0f;
-    glUniform3f(glGetUniformLocation(shaderID, "color"), 1.0f, 1.0f, 0.0f);
-
-    for (char c : scoreStr) {
-        float verts[] = {
-            textX, textY,
-            textX + charW, textY,
-            textX, textY + charH,
-            textX + charW, textY + charH
-        };
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        textX += charW + charSpacing;
+    // === 3. TEXT LABELS ===
+    // "HEALTH" label
+    std::string healthLabel = "HEALTH";
+    float labelX = margin;
+    float labelY = barY + 35.0f;
+    glUniform3f(glGetUniformLocation(shaderID, "color"), 1.0f, 1.0f, 1.0f);
+    for (char c : healthLabel) {
+        drawCharacter(c, labelX, labelY, 0.5f, glm::vec3(1,1,1), shaderID, VAO, VBO, glm::ortho(0.0f, (float)w, (float)h, 0.0f));
+        labelX += 6.0f;
+    }
+    
+    // "AMMO" label
+    std::string ammoLabel = "AMMO";
+    labelX = ammoStartX;
+    labelY = barY + 35.0f;
+    for (char c : ammoLabel) {
+        drawCharacter(c, labelX, labelY, 0.5f, glm::vec3(1,1,1), shaderID, VAO, VBO, glm::ortho(0.0f, (float)w, (float)h, 0.0f));
+        labelX += 6.0f;
     }
 
-    // === 4. AMMO COUNT TEXT ===
-    std::stringstream ammoSs;
-    ammoSs << currentAmmo << "/" << (reserveMags * 30 + partialMagAmmo);
-    std::string ammoStr = ammoSs.str();
-
-    textX = ammoStartX + 10;
-    textY = bar1Y - 35;
-    glUniform3f(glGetUniformLocation(shaderID, "color"), 1.0f, 1.0f, 1.0f);
-
-    for (char c : ammoStr) {
-        float verts[] = {
-            textX, textY,
-            textX + charW, textY,
-            textX, textY + charH,
-            textX + charW, textY + charH
-        };
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        textX += charW + charSpacing;
+    // Score display (top right)
+    std::stringstream ss;
+    ss << "SCORE:" << std::setw(6) << std::setfill('0') << score;
+    std::string scoreStr = ss.str();
+    
+    float scoreX = w - 150.0f;
+    float scoreY = 20.0f;
+    glUniform3f(glGetUniformLocation(shaderID, "color"), 1.0f, 1.0f, 0.0f);
+    for (char c : scoreStr) {
+        drawCharacter(c, scoreX, scoreY, 0.6f, glm::vec3(1,1,0), shaderID, VAO, VBO, glm::ortho(0.0f, (float)w, (float)h, 0.0f));
+        scoreX += 7.0f;
     }
 
     glEnable(GL_DEPTH_TEST);
 }
 
-// ===================== RENDER PAUSE TEXT =====================
+// ✅ RENDER PAUSE TEXT
 void TextRenderer::RenderPauseText(unsigned int screenW, unsigned int screenH) {
     glDisable(GL_DEPTH_TEST);
     glUseProgram(shaderID);
@@ -309,29 +330,19 @@ void TextRenderer::RenderPauseText(unsigned int screenW, unsigned int screenH) {
 
     // "PAUSED" title
     std::string pausedText = "PAUSED";
-    float textX = screenW / 2.0f - pausedText.length() * 8.0f;
+    float textX = screenW / 2.0f - pausedText.length() * 5.0f;
     float textY = 60.0f;
-    float charW = 16.0f, charH = 24.0f;
 
     glUniform3f(glGetUniformLocation(shaderID, "color"), 1.0f, 1.0f, 1.0f);
     for (char c : pausedText) {
-        float verts[] = {
-            textX, textY,
-            textX + charW, textY,
-            textX, textY + charH,
-            textX + charW, textY + charH
-        };
-        glBindVertexArray(VAO);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        textX += charW + 2.0f;
+        drawCharacter(c, textX, textY, 1.5f, glm::vec3(1,1,1), shaderID, VAO, VBO, proj);
+        textX += 15.0f;
     }
 
     glEnable(GL_DEPTH_TEST);
 }
 
-// ===================== RENDER START TEXT =====================
+// ✅ RENDER START TEXT
 void TextRenderer::RenderStartText(unsigned int screenW, unsigned int screenH) {
     glDisable(GL_DEPTH_TEST);
     glUseProgram(shaderID);
@@ -341,29 +352,19 @@ void TextRenderer::RenderStartText(unsigned int screenW, unsigned int screenH) {
 
     // Title
     std::string titleText = "SHOOTER GAME";
-    float textX = screenW / 2.0f - titleText.length() * 8.0f;
+    float textX = screenW / 2.0f - titleText.length() * 7.0f;
     float textY = 80.0f;
-    float charW = 16.0f, charH = 24.0f;
 
     glUniform3f(glGetUniformLocation(shaderID, "color"), 0.0f, 1.0f, 1.0f); // Cyan
     for (char c : titleText) {
-        float verts[] = {
-            textX, textY,
-            textX + charW, textY,
-            textX, textY + charH,
-            textX + charW, textY + charH
-        };
-        glBindVertexArray(VAO);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        textX += charW + 2.0f;
+        drawCharacter(c, textX, textY, 1.2f, glm::vec3(0,1,1), shaderID, VAO, VBO, proj);
+        textX += 12.0f;
     }
 
     glEnable(GL_DEPTH_TEST);
 }
 
-// ===================== RENDER END TEXT =====================
+// ✅ RENDER END TEXT
 void TextRenderer::RenderEndText(int finalScore, bool won, unsigned int screenW, unsigned int screenH) {
     glDisable(GL_DEPTH_TEST);
     glUseProgram(shaderID);
@@ -372,49 +373,34 @@ void TextRenderer::RenderEndText(int finalScore, bool won, unsigned int screenW,
     glUniformMatrix4fv(glGetUniformLocation(shaderID, "proj"), 1, GL_FALSE, &proj[0][0]);
 
     // Result text
-    std::string resultText = won ? "YOU WON!" : "YOU DIED!";
+    std::string resultText = won ? "YOU WON" : "YOU DIED";
     glm::vec3 resultColor = won ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f);
 
     float textX = screenW / 2.0f - resultText.length() * 8.0f;
     float textY = 100.0f;
-    float charW = 16.0f, charH = 24.0f;
 
     glUniform3fv(glGetUniformLocation(shaderID, "color"), 1, &resultColor[0]);
     for (char c : resultText) {
-        float verts[] = {
-            textX, textY,
-            textX + charW, textY,
-            textX, textY + charH,
-            textX + charW, textY + charH
-        };
-        glBindVertexArray(VAO);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        textX += charW + 2.0f;
+        drawCharacter(c, textX, textY, 1.8f, resultColor, shaderID, VAO, VBO, proj);
+        textX += 16.0f;
     }
 
     // Score display
     std::stringstream ss;
-    ss << "SCORE: " << finalScore;
+    ss << "SCORE:" << finalScore;
     std::string scoreStr = ss.str();
 
-    textX = screenW / 2.0f - scoreStr.length() * 8.0f;
+    textX = screenW / 2.0f - scoreStr.length() * 6.0f;
     textY = 200.0f;
     glUniform3f(glGetUniformLocation(shaderID, "color"), 1.0f, 1.0f, 0.0f);
     for (char c : scoreStr) {
-        float verts[] = {
-            textX, textY,
-            textX + charW, textY,
-            textX, textY + charH,
-            textX + charW, textY + charH
-        };
-        glBindVertexArray(VAO);
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        textX += charW + 2.0f;
+        drawCharacter(c, textX, textY, 1.2f, glm::vec3(1,1,0), shaderID, VAO, VBO, proj);
+        textX += 12.0f;
     }
 
     glEnable(GL_DEPTH_TEST);
+}
+
+glm::vec3 TextRenderer::getCharColor(char c) {
+    return glm::vec3(1.0f);
 }
