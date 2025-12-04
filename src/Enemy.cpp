@@ -7,6 +7,8 @@
 #include <GLFW/glfw3.h>
 #include <time.h>
 
+//Haider Commit
+
 // Static timer for debug output
 static auto lastEnemyDebug = std::chrono::steady_clock::now();
 
@@ -230,3 +232,4 @@ std::vector<Enemy>& EnemyManager::getAllEnemies() {
 int EnemyManager::getEnemyCount() const {
     return enemies.size();
 }
+
