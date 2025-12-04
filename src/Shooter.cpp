@@ -2,12 +2,14 @@
 #include <iostream>
 #include <algorithm>
 #include "Tracer.h"
+#include "WeaponSystem.h"
 
 extern TracerManager tracerManager;  // Global tracers
 extern int playerHealth;
 extern int score;
 extern int currentAmmo;
 extern int reserveMags;
+extern WeaponSystem ws;
 
 bool Shooter::rayAABB(const glm::vec3& orig, const glm::vec3& dir,
                       const Cube& cube, float& t) {
@@ -52,10 +54,10 @@ void Shooter::fire(const Camera& cam, World& world, EnemyManager& enemies) {
             hitItem = (int)i;
         }
     }
+    float hitDist = closest;
     if (hitItem != -1) {
-        float hitDist = closest;
-        glm::vec3 hitPos = rayOrigin + rayDir * hitDist;  // <- HIT POINT
-        tracerManager.add(rayOrigin, hitPos);             // <- ADD TRACER
+        glm::vec3 hitPos = rayOrigin + rayDir * hitDist;  // ← HIT POINT
+        tracerManager.add(rayOrigin, hitPos);             // ← ADD TRACER
         const Cube& c = world.cubes[hitItem];
         Item::pickUp(world, c.id);
         score += 5; // global score
@@ -64,15 +66,25 @@ void Shooter::fire(const Camera& cam, World& world, EnemyManager& enemies) {
     }
 
     // ---- Check Enemies ----
+    auto* bullet = ws.getCurrentBullet();
+    auto& reserve = ws.getCurrentReserve();
+
+    if (reserve.currentAmmo <= 0) return;
+
+    reserve.currentAmmo--;
+    glm::vec3 hitPos = rayOrigin + rayDir * hitDist;
+    tracerManager.add(rayOrigin, hitPos);
+
+
     int   enemyID;
     float enemyDist;
     if (enemies.hitTest(rayOrigin, rayDir, enemyID, enemyDist)) {
         if (currentAmmo > 0) {
-            glm::vec3 hitPos = rayOrigin + rayDir * enemyDist;  // <- HIT POINT
-            tracerManager.add(rayOrigin, hitPos);               // <- ADD TRACER
+            glm::vec3 hitPos = rayOrigin + rayDir * enemyDist;  // ← HIT POINT
+            tracerManager.add(rayOrigin, hitPos);               // ← ADD TRACER
             currentAmmo--;
             score += 10;
-            enemies.enemies[enemyID].health -= 34.0f;
+            enemies.enemies[enemyID].health -= bullet->getDamage();
         if (enemies.enemies[enemyID].health <= 0) {
             score += 50;
             enemies.enemies.erase(enemies.enemies.begin() + enemyID);
@@ -82,7 +94,7 @@ void Shooter::fire(const Camera& cam, World& world, EnemyManager& enemies) {
     }
 
     // Missed – short tracer
-    glm::vec3 hitPos = rayOrigin + rayDir * 50.0f;  // Max range
+    hitPos = rayOrigin + rayDir * 50.0f;  // Max range
     tracerManager.add(rayOrigin, hitPos);
 
     if (currentAmmo > 0) currentAmmo--;
