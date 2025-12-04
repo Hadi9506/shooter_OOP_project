@@ -61,7 +61,7 @@ void Shooter::fire(const Camera& cam, World& world, EnemyManager& enemies) {
         const Cube& c = world.cubes[hitItem];
         Item::pickUp(world, c.id);
         score += 5; // global score
-        reserveMags++;
+        ws.setmagz();
         return;
     }
 
