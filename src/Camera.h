@@ -1,4 +1,4 @@
-e#pragma once
+#pragma once
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -21,9 +21,9 @@ public:
     float velocityY;         // Vertical velocity for jumping/gravity
     bool isOnGround;         // Whether camera is on ground for jumping
     
-    const float GRAVITY;     // Gravity acceleration
-    const float JUMP_FORCE;  // Initial jump velocity
-    const float GROUND_Y;    // Ground level Y position
+    const float GRAVITY = -15.0f;     // Gravity acceleration
+    const float JUMP_FORCE = 7.0f;  // Initial jump velocity
+    const float GROUND_Y = 2.0f;    // Ground level Y position
 
     // Constructor with optional starting position
     Camera(glm::vec3 pos = glm::vec3(0.0f, 0.0f, 3.0f));
