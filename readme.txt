@@ -1,5 +1,5 @@
 ## Project Overview
-A 3D First-Person Shooter (FPS) game built with C++ using OpenGL, GLFW, GLM, and GLAD libraries. Features a menu system, gameplay mechanics with enemy AI, HUD display, and a pause/end screen system.
+A 3D First-Person Shooter (FPS) game written in C++ using OpenGL, GLFW, GLM and GLAD. The project includes a menu system, gameplay with simple enemy AI, HUD rendering, a weapon system (with magazine/reserve logic), tracer effects, and pause/end screens.
 
 ---
 ## Team Members:
@@ -22,132 +22,105 @@ A 3D First-Person Shooter (FPS) game built with C++ using OpenGL, GLFW, GLM, and
 
 ## Core Components
 
-### Main Game Loop (main.cpp)
-**Purpose:** Central hub managing game initialization, state transitions, and frame rendering.
+### Main Game Loop (`main.cpp`)
+Purpose: initializes the renderer, handles the main game loop, manages screen states (menu, gameplay, pause), and dispatches rendering and update calls each frame.
 
-**Key Global Variables:**
-- `playerHealth`: Current player health (0-100)
-- `score`: Accumulated score from eliminated enemies
-- `ammo`: Current ammunition count (refills at 30)
-- `currentGameScreen`: Active screen state (START_MENU, GAMEPLAY, PAUSE_MENU, END_SCREEN)
-- `pauseKeyPressed`: Debounce flag for pause key
+Key global variables (as present in `main.cpp`):
+- `playerHealth` : current player HP (0–100)
+- `score` : player score
+- `currentAmmo` : bullets in the currently loaded magazine
+- `reserveMags` : number of full spare magazines
+- `partialMagAmmo` : leftover bullets from an ejected mag
+- `TracerManager tracerManager` : global tracer/visual bullet-effect manager
+- `WeaponSystem ws` : global weapon system handling switching/reloading
+- `currentGameScreen` : active screen enum (START_MENU, GAMEPLAY, PAUSE_MENU, END_SCREEN)
+- `pauseKeyPressed` : simple debounce flag for the P key
 
-**Screen Resolution:**
-- `SCR_WIDTH`: 1200 pixels
-- `SCR_HEIGHT`: 800 pixels
+Screen resolution constants:
+- `SCR_WIDTH` = 1200
+- `SCR_HEIGHT` = 800
 
 ### Graphics Initialization
-```
-1. GLFW Window Creation (1200x800)
-2. OpenGL 3.3 Core Profile Setup
-3. GLAD Loader Integration
-4. Depth Testing Enabled
-5. VSync Enabled (60 FPS cap)
-```
+1. GLFW window creation (1200×800)
+2. OpenGL 3.3 Core Profile
+3. GLAD loader initialization
+4. Depth testing enabled
+5. VSync via `glfwSwapInterval(1)`
 
 ### VAO Setup
-**Cube VAO:** Stores vertex and index data for 3D world geometry
-**Crosshair VAO:** 2D overlay with 4 line vertices for HUD crosshair
+- Cube VAO: vertex + index buffers for 3D world cubes
+- Crosshair VAO: simple 2D VAO with 4 vertices used for drawing two crosshair lines
 
 ---
 
 ## Game States
 
-### 1. START_MENU (GameScreen::START_MENU)
-- Renders main menu screen
-- Button options: START GAME, EXIT GAME
-- Resets player stats (Health: 100, Score: 0, Ammo: 30)
-- Spawns 3 enemies at initial positions
-- Disables cursor for gameplay
+### START_MENU (`GameScreen::START_MENU`)
+- Renders the start menu UI via the GUI system
+- Buttons include PLAY, SETTINGS, EXIT
+- When PLAY is chosen the game transitions to `GAMEPLAY`, cursor is disabled and several player stats are reset in code: `playerHealth = 100`, `score = 0`, and `currentAmmo` is set from code (in `main.cpp` the start path sets `currentAmmo = 31`).
+- The code spawns multiple enemies at startup (see implementation: a loop spawns 7 enemies).
 
-### 2. GAMEPLAY (GameScreen::GAMEPLAY)
-- **Player Input:** WASD/Arrow keys for movement, Space for jump, ESC to exit
-- **Shooting:** Left mouse button fires projectiles
-- **Pause:** P key transitions to pause menu
-- **Game Over Conditions:**
-  - Player health ≤ 0 → END_SCREEN (loss)
-  - (Commented) All enemies eliminated → END_SCREEN (win)
+### GAMEPLAY (`GameScreen::GAMEPLAY`)
+- Player input: WASD / Arrow keys for movement, Space to jump, ESC to exit
+- Shooting: Left mouse button (and Enter) call `Shooter::fire(...)`
+- Weapon switching: keys `1`, `2`, `3` to switch weapon slots (handled by `WeaponSystem`)
+- Reload: `R` triggers a reload via the `WeaponSystem` (reload helper and magazine logic are implemented)
+- Pause: `P` opens pause menu
 
-**Frame Operations:**
-1. Process keyboard/mouse input
-2. Update camera physics (gravity, movement)
-3. Handle firing with ammo tracking
-4. Render 3D world and enemies
-5. Update enemy AI and attack detection
-6. Render HUD text (health, score, ammo)
-7. Render 2D crosshair overlay
-8. Check game-over conditions
+Frame update sequence (high-level):
+1. Process input
+2. Update camera physics
+3. Update tracer effects
+4. Render 3D world and enemies (depth testing enabled)
+5. Render HUD (depth disabled)
+6. Render 2D crosshair overlay
+7. Check player health / game-over conditions
 
-### 3. PAUSE_MENU (GameScreen::PAUSE_MENU)
-- Pauses all game logic
-- Button options: RESUME, MAIN MENU
-- P key can also resume gameplay
-- Cursor enabled for menu interaction
+### PAUSE_MENU (`GameScreen::PAUSE_MENU`)
+- Pauses gameplay updates and allows menu interaction
+- Buttons: RESUME, MAIN MENU
+- `P` can also resume gameplay
 
-### 4. END_SCREEN (GameScreen::END_SCREEN)
-- Displays final game result and score
-- Button options: PLAY AGAIN, MAIN MENU
-- Resets stats and respawns enemies on restart
+### END_SCREEN (`GameScreen::END_SCREEN`)
+- Shows final score and result
+- Options: PLAY AGAIN, MAIN MENU
 
 ---
 
 ## Key Features
 
 ### Camera & Player Control
-- **Class:** `Camera` (Camera.h/Camera.cpp)
-- Movement: Forward/Backward/Left/Right with physics
-- Jump mechanic with gravity
-- Mouse look with configurable sensitivity
-- First-person perspective
+- Class: `Camera` (`Camera.h/cpp`)
+- First-person camera: mouse look, configurable sensitivity, physics-based movement and jump
 
 ### Enemy System
-- **Class:** `EnemyManager` (Enemy.h/Enemy.cpp)
-- Spawns 3 distinct enemies with colored cubes (Red, Green, Magenta)
-- Spawned at: (-3, 1.5, -1), (3, 1.5, -1), (0, 1.5, -2)
-- **AI Features:**
-  - Position updates per frame
-  - Attack range detection
-  - Player damage dealing
-  - Death on being shot
+- Class: `EnemyManager` (`Enemy.h/cpp`)
+- The current code spawns multiple enemies in a loop (7 in the provided `main.cpp` snippet) at distinct positions and updates their positions and attacks each frame
 
-### Shooting Mechanics
-- **Class:** `Shooter` (Shooter.h/Shooter.cpp)
-- Fire method: `Shooter::fire(camera, world, enemies)`
-- Raycast-based projectile from camera position
-- Ammo counter: 0-30 (refills when depleted)
-- Shooting disabled while reloading
+### Shooting & Weapon System
+- Class: `Shooter` (`Shooter.h/cpp`) — handles firing via raycasts and spawning tracer/bullet effects
+- `WeaponSystem` (`WeaponSystem.h/cpp`) — handles weapon switching and reloading. Keys `1`/`2`/`3` switch weapons, `R` reloads, and `Shooter::fire` is used to shoot.
+- Global variables used for ammo state: `currentAmmo`, `reserveMags`, `partialMagAmmo` plus an inline reload helper in code that refills the current magazine using partial ammo first then reserve mags.
+
+### Tracers & Visuals
+- `TracerManager` collects and renders tracer effects; updated and rendered each frame using the 3D shader. This provides visual bullet traces for fired shots.
 
 ### World Rendering
-- **Class:** `World` (World.h/World.cpp)
-- Generates static 3D environment
-- Render method takes VAO, view-projection matrix, shader ID
-- Collision detection with enemy firing
+- Class: `World` (`World.h/cpp`) — procedural/static generation of cube-based world geometry; `render` accepts VAO, view-projection, and shader id.
 
 ### Shader System
-- **Class:** `Shader` (Shader.h/Shader.cpp)
-- 3D Rendering: `basic.vert` + `basic.frag`
-- 2D Crosshair: `crosshair.vert` + `crosshair.frag`
-- Shaders located in `resources/`
+- Class: `Shader` (`Shader.h/cpp`)
+- 3D rendering uses `resources/basic.vert` and `resources/basic.frag`
+- 2D crosshair uses `resources/crosshair.vert` and `resources/crosshair.frag`
 
-### Text Rendering & HUD
-- **Class:** `TextRenderer` (TextRenderer.h/TextRenderer.cpp)
-- Method: `RenderHUD(health, score, ammo, width, height)`
-- Displays real-time player stats on screen
-- Uses font rendering from `stb_truetype.h`
+### Text Renderer & HUD
+- Class: `TextRenderer` (`TextRenderer.h/cpp`)
+- Method: `RenderHUD(health, score, currentAmmo, reserveMags, width, height)` — displays health, score and ammo/mag info on-screen
 
 ### GUI System
-- **File:** `GUI/main_gui.h/cpp`
-- Functions:
-  - `initializeGUI()`: Setup GUI system
-  - `renderStartMenuScreen()`: Draw start menu
-  - `handleStartMenuClick()`: Process button clicks (return: 0=START, 1=EXIT)
-  - `renderPauseMenuScreen()`: Draw pause menu
-  - `handlePauseMenuClick()`: Process pause menu clicks (return: 0=RESUME, 1=MAIN_MENU)
-  - `renderEndMenuScreen()`: Draw end screen
-  - `handleEndMenuClick()`: Process end screen clicks (return: 0=PLAY_AGAIN, 1=MAIN_MENU)
-  - `guiClickCallback()`: Mouse click handler
-  - `guiMouseCallback()`: Mouse movement handler for menus
-  - `cleanupGUI()`: Release GUI resources
+- `GUI/main_gui.h/cpp` — handles menu rendering, mouse callbacks and button handling
+- Functions provided by the GUI: `initializeGUI`, `renderStartMenuScreen`, `handleStartMenuClick`, `renderPauseMenuScreen`, `handlePauseMenuClick`, `renderEndMenuScreen`, `handleEndMenuClick`, `guiClickCallback`, `guiMouseCallback`, and `cleanupGUI`
 
 ---
 
@@ -161,26 +134,29 @@ shooter_OOP_project-main/
 │   ├── glm/                    # Math library
 │   ├── KHR/                    # Khronos headers
 │   └── stb_truetype.h          # Font rendering
-├── lib/                        # Compiled libraries
+├── lib/                        # Compiled libraries (GLFW DLLs, etc.)
 ├── resources/                  # Shader files
-│   ├── basic.vert/frag         # 3D rendering shaders
-│   └── crosshair.vert/frag     # 2D crosshair shaders
+│   ├── basic.vert
+│   ├── basic.frag
+│   ├── crosshair.vert
+│   └── crosshair.frag
 ├── src/                        # Source code
-│   ├── main.cpp                # Main game loop
-│   ├── Camera.h/cpp            # Player camera control
-│   ├── Enemy.h/cpp             # Enemy spawning & AI
-│   ├── Shooter.h/cpp           # Projectile/raycast firing
-│   ├── World.h/cpp             # World generation
-│   ├── Shader.h/cpp            # Shader management
-│   ├── TextRenderer.h/cpp      # HUD text rendering
-│   ├── Item.h/cpp              # Item system (if used)
+│   ├── main.cpp                # Main game loop (current version includes WeaponSystem, TracerManager, reload helper)
+│   ├── Camera.h/cpp
+│   ├── Enemy.h/cpp
+│   ├── Shooter.h/cpp
+│   ├── World.h/cpp
+│   ├── Shader.h/cpp
+│   ├── TextRenderer.h/cpp
+│   ├── WeaponSystem.h         # Weapon switching / reload management
+│   ├── Bullet.h/cpp
+│   ├── tracer.cpp/h           # Tracer manager and effects
 │   ├── glad.c                  # GLAD implementation
-│   └── GUI/                    # Menu system
+│   └── GUI/
 │       ├── main_gui.h/cpp
 │       ├── start_Screen.h/cpp
 │       ├── pause_Screen.h/cpp
-│       ├── end_Screen.h/cpp
-│       └── startScreen.cpp
+│       └── end_Screen.h/cpp
 └── readme.txt                  # This file
 ```
 
@@ -190,26 +166,26 @@ shooter_OOP_project-main/
 
 ### Prerequisites
 - Windows 10/11
-- MinGW with g++ (C++17 support)
-- GLFW3 DLL library
-- OpenGL-compatible GPU
+- MinGW / g++ with C++17 support (or other compatible compiler)
+- GLFW3 DLL available on your PATH or in the executable directory
+- OpenGL-capable GPU and drivers
 
-### Build Command
-```bash
-g++.exe -g -std=c++17 -I./include -L./lib ^
-  ./src/main.cpp ./src/glad.c -lglfw3dll ^
+### Example Build Command (MinGW / PowerShell)
+```powershell
+g++.exe -g -std=c++17 -I./include -L./lib \\
+  ./src/main.cpp ./src/glad.c -lglfw3dll \\
   -o ./cutable.exe
 ```
 
 ### Compilation Flags
-- `-g`: Debug symbols
-- `-std=c++17`: C++ standard
-- `-I./include`: Include directory paths
-- `-L./lib`: Library directory paths
-- `-lglfw3dll`: Link GLFW3 library
+- `-g` : debug symbols
+- `-std=c++17` : standard
+- `-I./include` : header includes
+- `-L./lib` : library path
+- `-lglfw3dll` : link GLFW (DLL import)
 
 ### Running the Game
-```bash
+```powershell
 ./cutable.exe
 ```
 
@@ -228,11 +204,15 @@ g++.exe -g -std=c++17 -I./include -L./lib ^
 | ESC   | Exit Game     |
 
 ### Combat
-| Input      | Action                      |
-|------------|-----------------------------|
-| Mouse Move | Look Around (gameplay only) |
-| Left Click | Fire Weapon                 |
-| P          | Pause/Resume                |
+| Input      | Action                                                               |
+|------------|----------------------------------------------------------------------|
+| Mouse Move | Look Around (gameplay only)                                          |
+| Left Click | Fire Weapon                                                          |
+| Enter      | Alternate fire trigger (also calls `Shooter::fire` in provided code) |
+| 1, 2, 3    | Switch weapon slots (handled by `WeaponSystem`)                      |
+| R          | Reload current weapon (uses `WeaponSystem::reloadCurrent` in code)   |
+| P          | Pause / resume                                                       |
+
 ### Menu Navigation
 | Input      | Action                      |
 |------------|-----------------------------|
@@ -243,51 +223,47 @@ g++.exe -g -std=c++17 -I./include -L./lib ^
 
 ## Game Mechanics
 
-### Ammo System
-- Start with 30 ammo per round
-- One ammo consumed per shot
-- Ammo automatically refills to 30 when depleted
-- Ammo counter displayed in HUD
+### Ammo System (updated)
+- The code maintains magazine-aware ammo state via three variables:
+  - `currentAmmo` : bullets in the currently loaded magazine
+  - `reserveMags` : number of full spare magazines available
+  - `partialMagAmmo` : any leftover bullets from an ejected mag
+- A small reload helper in `main.cpp` demonstrates the approach:
+  1. Use `partialMagAmmo` first to top up the current magazine
+  2. If still needed, consume one full magazine from `reserveMags` and fill the remainder
+  3. If that mag wasn't fully used, leftover bullets become `partialMagAmmo`
+- `WeaponSystem` exposes `switchWeapon(int)` and `reloadCurrent()` in the current code; `R` triggers reload, keys `1`/`2`/`3` switch weapons.
 
 ### Health System
 - Player starts with 100 HP
-- Enemies deal damage based on proximity and attack timer
-- Game ends when health reaches 0
+- Enemies damage the player based on proximity and attack logic
+- If `playerHealth <= 0` the game returns to the menu / game over flow
 
 ### Score System
-- Points awarded for each enemy eliminated
-- Score persists across deaths
-- Final score displayed on end screen
+- Eliminating enemies increments `score`
+- Score is displayed on the end screen
 
-### Depth Testing & Rendering Order
-```
-1. 3D World Render (depth enabled)
-2. Enemy Models (depth enabled)
-3. Text/HUD (depth disabled, orthographic)
-4. Crosshair Overlay (depth disabled, 2D quad rendering)
-```
-
-### Lighting & Materials
-- Single light source (world-based)
-- Colored enemy cubes for visual distinction
-- Basic fragment shaders for color output
+### Rendering Order
+1. 3D world and enemy models (depth enabled)
+2. Tracer rendering
+3. HUD / text (depth disabled)
+4. Crosshair overlay (depth disabled; drawn with a 2D shader)
 
 ---
 
 ## Known Issues & TODOs
 
-### Commented Features
-- Enemy victory condition (all enemies dead) - currently commented out
-- Enemy clearing function - needs implementation
+### Noted / Code observations
+- The code sets `currentAmmo = 31` when transitioning from the START_MENU to GAMEPLAY; the top-level variable is initialized to `30`. This may be intentional or an off-by-one artifact — consider standardizing the starting magazine size.
+- Enemy victory (all enemies defeated → win) is currently commented out in places; consider re-enabling or implementing an explicit win condition and an enemy clearing function.
 
 ### Potential Improvements
 1. Add sound effects and background music
-2. Implement weapon switching system
-3. Add particle effects for gunfire/hits
-4. Implement health/ammo pickups
-5. Add level progression
-6. Optimize enemy count scaling
-7. Add difficulty settings
+2. Polished weapon switching GUI and per-weapon ammo counts
+3. Particle effects for gunfire and hits
+4. Health/ammo pickup items
+5. Level progression and difficulty scaling
+6. Optimize enemy count and spawn timing
 
 ---
 
@@ -296,22 +272,20 @@ g++.exe -g -std=c++17 -I./include -L./lib ^
 | Library      | Version   | Purpose                     |
 |--------------|-----------|-----------------------------|
 | GLFW         | 3.x       | Window & input management   |
-| GLAD         | Generated | OpenGL function loading     |
-| GLM          | Latest    | 3D math (matrices, vectors) |
-| stb_truetype | Latest    | Font rendering              |
+| GLAD         | generated | OpenGL function loading     |
+| GLM          | header-only | Math (vectors, matrices) |
+| stb_truetype | header-only | Bitmap / font rendering   |
 
 ---
 
 ## Author Notes
 
-This project demonstrates core game development concepts:
-- Object-Oriented Programming principles
-- OpenGL rendering pipeline (3D + 2D blending)
-- Game state machines
-- Input handling and event callbacks
-- 3D camera control and perspective
-- Enemy AI and collision detection
-- HUD text rendering
+This project demonstrates practical game dev concepts using C++ and OpenGL:
+- Object-Oriented structure for game systems
+- A simple weapon / reload model with magazine and reserve logic
+- Tracer visual effects for fired shots
+- Game state management (menu, gameplay, pause, end)
+- HUD rendering and simple GUI interactions
 
 ---
 :)
