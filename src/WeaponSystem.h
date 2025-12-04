@@ -4,7 +4,7 @@
 #include <memory>
 
 struct AmmoReserve {
-    int reservedMags = 5;
+    int reservedMags = 0;
     int partialAmmo = 0;
     int currentAmmo = 0;
     std::unique_ptr<Bullet> type;
@@ -51,6 +51,12 @@ public:
             if (give < magSize) {
                 r.partialAmmo += (magSize - give);
             }
+        }
+    }
+
+    void setmagz(){
+        for (auto& w: weapons){
+            w.reservedMags++;
         }
     }
 };
