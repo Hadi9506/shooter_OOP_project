@@ -1,5 +1,3 @@
-# FPS Crosshair Shooter - OOP Project Documentation
-
 ## Project Overview
 A 3D First-Person Shooter (FPS) game built with C++ using OpenGL, GLFW, GLM, and GLAD libraries. Features a menu system, gameplay mechanics with enemy AI, HUD display, and a pause/end screen system.
 
@@ -230,16 +228,16 @@ g++.exe -g -std=c++17 -I./include -L./lib ^
 | ESC   | Exit Game     |
 
 ### Combat
-| Input     | Action                      |
-|-----------|-----------------------------|
-| Mouse Move| Look Around (gameplay only) |
-| Left Click| Fire Weapon                 |
-| P         | Pause/Resume                |
+| Input      | Action                      |
+|------------|-----------------------------|
+| Mouse Move | Look Around (gameplay only) |
+| Left Click | Fire Weapon                 |
+| P          | Pause/Resume                |
 ### Menu Navigation
-| Input     | Action                      |
-|-----------|-----------------------------|
-| Mouse Move| Hover over buttons          |
-| Left Click| Select button               |
+| Input      | Action                      |
+|------------|-----------------------------|
+| Mouse Move | Hover over buttons          |
+| Left Click | Select button               |
 
 ---
 
