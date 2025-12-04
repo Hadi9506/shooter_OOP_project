@@ -2,6 +2,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+//Haider Commit
+
 // Camera class handles first-person view and physics
 // Manages position, orientation, and movement
 class Camera {
