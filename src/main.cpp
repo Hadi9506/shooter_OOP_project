@@ -12,7 +12,8 @@
 #include "TextRenderer.h"
 #include "GUI/main_gui.h"
 #include "tracer.h"
-
+#include "Bullet.h"
+#include "WeaponSystem.h"
 
 int playerHealth = 100;
 int score = 0;
@@ -20,6 +21,7 @@ int currentAmmo = 30;       // Ammo in currently loaded mag
 int reserveMags = 0;         // Number of spare mags
 int partialMagAmmo = 0;      // Ammo in ejected mag
 TracerManager tracerManager;  // Global tracers
+WeaponSystem ws;
 
 //reload helper 
 void reload(int mag_size,int &reserved_mags,int &partial_ammos,int &current_ammos){
@@ -114,9 +116,8 @@ int main() {
     world.generate();
 
     EnemyManager enemies;
-    enemies.spawn(glm::vec3(-3,1.5,-1), glm::vec3(1,0.2,0.2));  // RED
-    enemies.spawn(glm::vec3( 3,1.5,-1), glm::vec3(0.2,1,0.2));  // GREEN
-    enemies.spawn(glm::vec3( 0,1.5,-2), glm::vec3(1,0.2,1));    // MAGENTA
+    for(int i=0;i<7;i++)
+        enemies.spawn(glm::vec3(-3+i*2,1.5,-1-i*2), glm::vec3(1-i/10,0.1 + i/10,i/10));  
 
     glm::mat4 projection = glm::perspective(glm::radians(60.0f), 
                                             (float)SCR_WIDTH/SCR_HEIGHT, 0.1f, 100.0f);
@@ -312,8 +313,12 @@ void processInput(GLFWwindow* window) {
     if(glfwGetKey(window,GLFW_KEY_SPACE)==GLFW_PRESS) camera->jump();
 
     //reload logic 
+    
+    if(glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) ws.switchWeapon(0);
+    if(glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) ws.switchWeapon(1);
+    if(glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS) ws.switchWeapon(2);
     if(glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) 
-        reload(30,reserveMags,partialMagAmmo,currentAmmo);
+        ws.reloadCurrent();
     
     //move with both wasd or up,down,left,right
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS || glfwGetKey(window,GLFW_KEY_UP) == GLFW_PRESS) camera->processKeyboard(0, deltaTime);
