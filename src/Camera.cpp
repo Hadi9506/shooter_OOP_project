@@ -2,6 +2,7 @@
 #include <glm/gtc/constants.hpp>
 #include <iostream>
 
+//Haider Commit
 // Constructor: initialize camera with position and default orientation
 Camera::Camera(glm::vec3 pos) : position(pos), worldUp(0, 1, 0), yaw(-90.0f), pitch(0.0f),
                                 speed(8.0f), sensitivity(0.1f) {
@@ -94,4 +95,5 @@ void Camera::processMouse(float xoffset, float yoffset) {
     
     // Recalculate direction vectors
     updateVectors();
+
 }
