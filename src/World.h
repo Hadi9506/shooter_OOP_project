@@ -1,7 +1,9 @@
 #pragma once
-#include <vector>
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <vector>
 
 // Cube structure represents a single 3D cube in the world
 // Used for both static geometry (walls, floor) and collectible items
@@ -17,7 +19,7 @@ struct Cube {
 // Handles generation and rendering of environment
 class World {
 public:
-    std::vector<Cube> cubes;   // All cubes in the world
+    std::vector<Cube> cubes;  // All cubes in the world
     
     // Generate initial world layout with walls, floor, ceiling, and items
     void generate();
@@ -27,4 +29,10 @@ public:
     
     // Render all cubes using the provided VAO and shader
     void render(unsigned int VAO, const glm::mat4& VP, unsigned int shaderID) const;
+    
+    // Clear and regenerate the world
+    void reset() {
+        cubes.clear();
+        generate();
+    }
 };

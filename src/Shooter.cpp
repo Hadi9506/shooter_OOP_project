@@ -87,7 +87,7 @@ void Shooter::fire(const Camera& cam, World& world, EnemyManager& enemies) {
             enemies.enemies[enemyID].health -= bullet->getDamage();
         if (enemies.enemies[enemyID].health <= 0) {
             score += 50;
-            enemies.enemies.erase(enemies.enemies.begin() + enemyID);
+            enemies.enemies[enemyID].color = glm::vec3(0.0,0.0,0.0);
         }}
         else currentAmmo =0;
         return;

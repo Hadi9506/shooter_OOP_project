@@ -17,41 +17,31 @@
 
 int playerHealth = 100;
 int score = 0;
-int currentAmmo = 30;       // Ammo in currently loaded mag
-int reserveMags = 0;         // Number of spare mags
-int partialMagAmmo = 0;      // Ammo in ejected mag
-TracerManager tracerManager;  // Global tracers
+int currentAmmo = 30;
+int reserveMags = 0;
+int partialMagAmmo = 0;
+TracerManager tracerManager;
 WeaponSystem ws;
 
-//reload helper 
 void reload(int mag_size,int &reserved_mags,int &partial_ammos,int &current_ammos){
-        // Calculate how many bullets needed to fill current mag
-        int needed = mag_size - current_ammos;
-        // If mag is already full: do nothing
-        if (needed == 0) return;
-        // 1. Use partial ammo first
-        int use_partial = (partial_ammos < needed) ? partial_ammos : needed;;
-        current_ammos += use_partial;
-        partial_ammos -= use_partial;
-        needed -= use_partial;
+    int needed = mag_size - current_ammos;
+    if (needed == 0) return;
+    int use_partial = (partial_ammos < needed) ? partial_ammos : needed;
+    current_ammos += use_partial;
+    partial_ammos -= use_partial;
+    needed -= use_partial;
 
-        // 2. If still not full, use full reserve magazines
-        if (needed > 0 && reserved_mags > 0) {
-            // Take 1 full mag
-            reserved_mags--;
-            // Fill as much as needed from that full mag
-            int give = (mag_size < needed) ? mag_size : needed;;
-            current_ammos += give;
-            needed -= give;
-            // If mag wasn’t fully used, leftover becomes partial ammo
-            if (give < mag_size) {
-                partial_ammos += (mag_size - give);
-            }
+    if (needed > 0 && reserved_mags > 0) {
+        reserved_mags--;
+        int give = (mag_size < needed) ? mag_size : needed;
+        current_ammos += give;
+        needed -= give;
+        if (give < mag_size) {
+            partial_ammos += (mag_size - give);
         }
     }
+}
 
-
-// Forward declarations
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void processInput(GLFWwindow* window);
@@ -60,9 +50,33 @@ unsigned int createCubeVAO();
 int SCR_WIDTH = 1200;
 int SCR_HEIGHT = 800;
 
-// Game state
 GameScreen currentGameScreen = GameScreen::START_MENU;
 bool pauseKeyPressed = false;
+
+// Helper function to reset game state
+void resetGameState(EnemyManager& enemies, World& world) {
+    playerHealth = 100;
+    score = 0;
+    currentAmmo = 30;
+    reserveMags = 0;
+    partialMagAmmo = 0;
+    tracerManager = TracerManager();
+    ws = WeaponSystem();
+    
+    // Clear and respawn enemies
+    enemies.clear();
+    for(int i=0;i<7;i++)
+        enemies.spawn(glm::vec3(-3+i*2,1.5,-1-i*2), glm::vec3(1-i/10,0.1 + i/10,i/10));
+    
+    world.regenerateItems();
+    
+    // Reset and regenerate world boxes
+    world.reset();
+    
+    std::cout << "=== GAME STATE RESET ===\n";
+    std::cout << "Enemies spawned: " << enemies.getEnemyCount() << "\n";
+    std::cout << "World cubes: " << world.cubes.size() << "\n";
+}
 
 int main() {
     glfwInit();
@@ -87,21 +101,17 @@ int main() {
     Camera camera(glm::vec3(0.0f, 2.0f, 5.0f));
     glfwSetWindowUserPointer(window, &camera);
 
-    // MAIN 3D SHADER
     Shader shader3D("resources/basic.vert", "resources/basic.frag");
-    
-    // NEW: CROSSHAIR 2D SHADER
     Shader shaderCrosshair("resources/crosshair.vert", "resources/crosshair.frag");
 
     unsigned int cubeVAO = createCubeVAO();
 
-    // CROSSHAIR VAO (2D positions)
     unsigned int crosshairVAO, crosshairVBO;
     float crosshairVerts[] = {
-        -0.02f,  0.0f,    // Horizontal line left
-         0.02f,  0.0f,    // Horizontal line right
-         0.0f, -0.02f,    // Vertical line bottom
-         0.0f,  0.02f     // Vertical line top
+        -0.02f,  0.0f,
+         0.02f,  0.0f,
+         0.0f, -0.02f,
+         0.0f,  0.02f
     };
     glGenVertexArrays(1, &crosshairVAO);
     glGenBuffers(1, &crosshairVBO);
@@ -117,7 +127,7 @@ int main() {
 
     EnemyManager enemies;
     for(int i=0;i<7;i++)
-        enemies.spawn(glm::vec3(-3+i*2,1.5,-1-i*2), glm::vec3(1-i/10,0.1 + i/10,i/10));  
+        enemies.spawn(glm::vec3(-3+i*2,1.5,-1-i*2), glm::vec3(1-i/10,0.1 + i/10,i/10));
 
     glm::mat4 projection = glm::perspective(glm::radians(60.0f), 
                                             (float)SCR_WIDTH/SCR_HEIGHT, 0.1f, 100.0f);
@@ -126,7 +136,6 @@ int main() {
     bool enterpressed = false;
     bool lclick = false;
 
-    // Initialize GUI
     initializeGUI(SCR_WIDTH, SCR_HEIGHT);
 
     while (!glfwWindowShouldClose(window)) {
@@ -144,15 +153,9 @@ int main() {
                 // PLAY button clicked
                 currentGameScreen = GameScreen::GAMEPLAY;
                 glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-                playerHealth = 100;
-                score = 0;
-                currentAmmo = 31;
+                resetGameState(enemies, world);
             }
             if (clicked == 1) {
-                // SETTINGS button clicked
-                std::cout << "Settings clicked\n";
-            }
-            if (clicked == 2) {
                 // EXIT button clicked
                 glfwSetWindowShouldClose(window, true);
             }
@@ -170,7 +173,6 @@ int main() {
                 canShoot = true;
                 lclick = false;
             }
-
 
             if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS && canShoot && !enterpressed) {
                 Shooter::fire(camera, world, enemies);
@@ -200,48 +202,56 @@ int main() {
             // 3D RENDERING
             shader3D.use();
             glm::mat4 view = camera.getViewMatrix();
-            glm::mat4 proj = projection;  // your global projection matrix
+            glm::mat4 proj = projection;
             glm::mat4 VP = projection * view;
             tracerManager.update(deltaTime);
-            // std::cout<<"This is time" << deltaTime << std::endl;
-            tracerManager.render(shader3D.ID, proj,view);
+            tracerManager.render(shader3D.ID, proj, view);
             world.render(cubeVAO, VP, shader3D.ID);
             enemies.render(cubeVAO, VP, shader3D.ID);
-            enemies.update(deltaTime, camera.position);  // MOVEMENT
+            enemies.update(deltaTime, camera.position);
             enemies.attackPlayer(camera.position, playerHealth, deltaTime);
             
             TextRenderer hudRenderer(SCR_WIDTH, SCR_HEIGHT);
-            hudRenderer.RenderHUD(playerHealth, score, currentAmmo,reserveMags, SCR_WIDTH, SCR_HEIGHT);
+            hudRenderer.RenderHUD(playerHealth, score, currentAmmo, reserveMags, SCR_WIDTH, SCR_HEIGHT);
             
             // CROSSHAIR (2D OVERLAY)
             glDisable(GL_DEPTH_TEST);
-            shaderCrosshair.use();  //2D SHADER
+            shaderCrosshair.use();
             glBindVertexArray(crosshairVAO);
-            glDrawArrays(GL_LINES, 0, 4);  // 2 lines (4 vertices)
+            glDrawArrays(GL_LINES, 0, 4);
             glBindVertexArray(0);
             glEnable(GL_DEPTH_TEST);
 
             // Check game over
             if (playerHealth <= 0) {
-                currentGameScreen = GameScreen::START_MENU;
+                currentGameScreen = GameScreen::END_SCREEN;
                 glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+                setEndScreenResult(false, score);
             }
         }
         else if (currentGameScreen == GameScreen::PAUSE_MENU) {
-            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            glDisable(GL_DEPTH_TEST);
+            renderPauseMenuScreen();
             
-            // Resume on P press
-            if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
-                if (!pauseKeyPressed) {
-                    currentGameScreen = GameScreen::GAMEPLAY;
-                    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-                    pauseKeyPressed = true;
-                    std::cout << "Game Resumed\n";
-                }
-            } else {
-                pauseKeyPressed = false;
+            int clicked = handlePauseMenuClick();
+            if (clicked == 0) {
+                // RESUME button clicked
+                currentGameScreen = GameScreen::GAMEPLAY;
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+                pauseKeyPressed = true;
+                std::cout << "Game Resumed\n";
+            }
+            else if (clicked == 1) {
+                // RESTART button clicked
+                currentGameScreen = GameScreen::GAMEPLAY;
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+                resetGameState(enemies, world);
+                std::cout << "Game Restarted from Pause Menu\n";
+            }
+            else if (clicked == 2) {
+                // MAIN MENU button clicked
+                currentGameScreen = GameScreen::START_MENU;
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+                std::cout << "Back to Main Menu from Pause\n";
             }
             
             // ESC to go back to menu
@@ -249,8 +259,28 @@ int main() {
                 currentGameScreen = GameScreen::START_MENU;
                 glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             }
+        }
+        else if (currentGameScreen == GameScreen::END_SCREEN) {
+            renderEndMenuScreen();
             
-            glEnable(GL_DEPTH_TEST);
+            int clicked = handleEndMenuClick();
+            if (clicked == 0) {
+                // MAIN MENU button clicked
+                currentGameScreen = GameScreen::START_MENU;
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+                std::cout << "Back to Main Menu from End Screen\n";
+            }
+            else if (clicked == 1) {
+                // RESTART button clicked
+                currentGameScreen = GameScreen::GAMEPLAY;
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+                resetGameState(enemies, world);
+                std::cout << "Game Restarted from End Screen\n";
+            }
+            else if (clicked == 2) {
+                // EXIT button clicked
+                glfwSetWindowShouldClose(window, true);
+            }
         }
 
         glfwSwapBuffers(window);
@@ -266,7 +296,6 @@ int main() {
     return 0;
 }
 
-// ------------------- CALLBACKS & createCubeVAO (KEEP EXACTLY AS YOU HAVE) -------------------
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     SCR_WIDTH = width;
     SCR_HEIGHT = height;
@@ -289,12 +318,10 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
     lastX = xpos;
     lastY = ypos;
 
-    // Only update camera when in gameplay and cursor is disabled
     if (currentGameScreen == GameScreen::GAMEPLAY) {
         Camera* camera = static_cast<Camera*>(glfwGetWindowUserPointer(window));
         camera->processMouse(xoffset, yoffset);
     } else {
-        // Update GUI mouse for menu screens
         guiMouseCallback(window, xpos, ypos);
     }
 }
@@ -309,18 +336,14 @@ void processInput(GLFWwindow* window) {
     float deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
 
-    //jump 
     if(glfwGetKey(window,GLFW_KEY_SPACE)==GLFW_PRESS) camera->jump();
-
-    //reload logic 
     
-    if(glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) ws.switchWeapon(0);
+    if(glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) ws.switchWeapon(2);
     if(glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) ws.switchWeapon(1);
-    if(glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS) ws.switchWeapon(2);
+    if(glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS) ws.switchWeapon(0);
     if(glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) 
         ws.reloadCurrent();
     
-    //move with both wasd or up,down,left,right
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS || glfwGetKey(window,GLFW_KEY_UP) == GLFW_PRESS) camera->processKeyboard(0, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS || glfwGetKey(window,GLFW_KEY_DOWN) == GLFW_PRESS) camera->processKeyboard(1, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS || glfwGetKey(window,GLFW_KEY_LEFT) == GLFW_PRESS) camera->processKeyboard(2, deltaTime);

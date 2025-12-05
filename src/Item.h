@@ -1,14 +1,14 @@
 #pragma once
 #include "World.h"
+#include <glm/glm.hpp>
 
-// Item class provides static methods for item management
-// Handles pickup and respawn mechanics
+// Item class handles collectible items in the game world
+// Items can be picked up by the player for various effects
 class Item {
 public:
-    // Remove an item from the world by its ID
-    // Returns true if item was found and removed
+    // Attempt to pick up an item by ID from the world
     static bool pickUp(World& world, int itemID);
     
-    // Add an item back to the world at specified position
+    // Respawn an item at a specific position
     static void respawn(World& world, int itemID, const glm::vec3& pos);
 };

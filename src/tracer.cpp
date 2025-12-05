@@ -26,11 +26,13 @@ void initLineRenderer() {
 }
 
 void TracerManager::add(const glm::vec3& start, const glm::vec3& end) {
-    tracers.push_back({start, end});
+    tracers.push_back({start, end, 0.2f});
 }
 
 void TracerManager::update(float deltaTime) {
-    for (auto it = tracers.begin(); it != tracers.end(); ) {
+    // Remove expired tracers
+    auto it = tracers.begin();
+    while (it != tracers.end()) {
         it->life -= deltaTime;
         if (it->life <= 0.0f) {
             it = tracers.erase(it);

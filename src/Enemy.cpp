@@ -60,7 +60,7 @@ void EnemyManager::update(float deltaTime, glm::vec3 playerPos) {
         float distToPlayer = glm::distance(e.position, playerPos);
 
         // If player is close, chase them
-        if (distToPlayer < 18.0f) {
+        if (distToPlayer < 18.0f && e.color != glm::vec3(0.0,0.0,0.0)) {
             e.chasing = true;
             glm::vec3 dir = glm::normalize(playerPos - e.position);
             e.position += dir * e.speed * deltaTime;
@@ -191,14 +191,14 @@ void EnemyManager::attackPlayer(glm::vec3 playerPos, int& playerHealth, float de
         
         // Calculate distance to player
         float dist = glm::distance(e.position, playerPos);
-        const float MELEE_RANGE = 1.8f;
+        const float MELEE_RANGE = 1.8f ;
         const float ATTACK_COOLDOWN = 1.0f;
 
         // If player is in melee range, attack
         if (dist < MELEE_RANGE) {
             e.attackTimer += deltaTime;
             if (e.attackTimer >= ATTACK_COOLDOWN) {
-                int damage = 15;
+                int damage = (e.color== glm::vec3(0.0,0.0,0.0))? 0 : 15;
                 playerHealth -= damage;
                 std::cout << "Enemy hit you! -" << damage << " HP (Now: " << playerHealth << ")\n";
                 e.attackTimer = 0.0f;  // Reset cooldown

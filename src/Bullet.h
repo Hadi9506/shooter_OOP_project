@@ -29,7 +29,7 @@ public:
 
 class FiveHitBullet : public Bullet {
 public:
-    float getDamage() const override { return 25.0f; }
+    float getDamage() const override { return 20.0f; }
     glm::vec3 getTracerColor() const override { return glm::vec3(1.0f, 1.0f, 0.3f); } // Yellow
     int getMagSize() const override { return 15; }
     const char* getName() const override { return "Five"; }

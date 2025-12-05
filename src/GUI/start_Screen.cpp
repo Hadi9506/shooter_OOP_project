@@ -1,7 +1,6 @@
 #include "start_Screen.h"
 
 // Constructor for start button
-// Initializes position, size, colors, and label
 StartButton::StartButton(int buttonId, glm::vec2 pos, glm::vec2 sz, glm::vec3 col, glm::vec3 hovCol, glm::vec3 textCol, std::string lbl)
     : id(buttonId), position(pos), size(sz), color(col), hoverColor(hovCol), textColor(textCol), label(lbl), isHovered(false) {}
 
@@ -46,7 +45,6 @@ void StartScreen::initShaders() {
         }
     )";
     
-    // Compile vertex shader
     unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
     glCompileShader(vertexShader);
@@ -59,7 +57,6 @@ void StartScreen::initShaders() {
         std::cerr << "Vertex Shader Compilation Failed: " << infoLog << std::endl;
     }
     
-    // Compile fragment shader
     unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
@@ -70,7 +67,6 @@ void StartScreen::initShaders() {
         std::cerr << "Fragment Shader Compilation Failed: " << infoLog << std::endl;
     }
     
-    // Link shader program
     shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
@@ -88,7 +84,6 @@ void StartScreen::initShaders() {
 
 // Create vertex array object with quad vertices
 void StartScreen::createQuadVAO() {
-    // Simple quad covering unit square
     float quadVertices[] = {
         -1.0f,  1.0f,
          1.0f,  1.0f,
@@ -119,23 +114,23 @@ void StartScreen::createButtons() {
     float centerX = screenWidth / 2;
     float centerY = screenHeight / 2;
     
-    // Play button (green) - top button
+    // Play button (green)
     buttons.push_back(StartButton(
-        0, glm::vec2(centerX, centerY - 60),
+        0, glm::vec2(centerX, centerY + 80),
         glm::vec2(300, 80),
-        glm::vec3(0.2f, 0.8f, 0.3f),      // Green
-        glm::vec3(0.3f, 1.0f, 0.4f),      // Bright green on hover
-        glm::vec3(1.0f, 1.0f, 1.0f),      // White text
+        glm::vec3(0.2f, 0.8f, 0.3f),
+        glm::vec3(0.3f, 1.0f, 0.4f),
+        glm::vec3(1.0f, 1.0f, 1.0f),
         "START GAME"
     ));
     
-    // Exit button (red) - bottom button
+    // Exit button (red)
     buttons.push_back(StartButton(
-        1, glm::vec2(centerX, centerY + 60),
+        1, glm::vec2(centerX, centerY + 200),
         glm::vec2(300, 80),
-        glm::vec3(0.9f, 0.2f, 0.2f),      // Red
-        glm::vec3(1.0f, 0.3f, 0.3f),      // Bright red on hover
-        glm::vec3(1.0f, 1.0f, 1.0f),      // White text
+        glm::vec3(0.9f, 0.2f, 0.2f),
+        glm::vec3(1.0f, 0.3f, 0.3f),
+        glm::vec3(1.0f, 1.0f, 1.0f),
         "EXIT GAME"
     ));
 }
@@ -144,7 +139,6 @@ void StartScreen::createButtons() {
 void StartScreen::updateMouse(double xpos, double ypos) {
     mousePos = glm::vec2(xpos, ypos);
     
-    // Update hover state for all buttons
     for (auto& button : buttons) {
         button.isHovered = button.isMouseOver(mousePos);
     }
@@ -164,7 +158,6 @@ void StartScreen::handleMouseRelease() {
 int StartScreen::handleButtonClick() {
     if (!mousePressed) return -1;
     
-    // Check which button was clicked
     for (const auto& button : buttons) {
         if (button.isMouseOver(mousePos)) {
             mousePressed = false;
@@ -177,7 +170,6 @@ int StartScreen::handleButtonClick() {
 
 // Render a filled rectangle on screen
 void StartScreen::renderRectangle(glm::vec2 position, glm::vec2 size, glm::vec3 color) {
-    // Create orthographic projection for 2D rendering
     glm::mat4 projection = glm::ortho(0.0f, screenWidth, screenHeight, 0.0f, -1.0f, 1.0f);
     glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(position.x, position.y, 0.0f));
     model = glm::scale(model, glm::vec3(size.x / 2, size.y / 2, 1.0f));
@@ -200,12 +192,10 @@ void StartScreen::renderButton(const StartButton& button) {
 
 // Render title and background
 void StartScreen::renderTitle() {
-    // Background panel for title
     renderRectangle(glm::vec2(screenWidth / 2, 100), 
                    glm::vec2(screenWidth * 0.8f, 150), 
                    glm::vec3(0.1f, 0.15f, 0.3f));
     
-    // Background gradient effect
     renderRectangle(glm::vec2(screenWidth / 2, screenHeight / 2), 
                    glm::vec2(screenWidth, screenHeight), 
                    glm::vec3(0.05f, 0.05f, 0.1f));
@@ -213,7 +203,6 @@ void StartScreen::renderTitle() {
 
 // Render text (placeholder)
 void StartScreen::renderText(const std::string& text, float x, float y, float scale, glm::vec3 color) {
-    // Placeholder for text rendering
 }
 
 // Render entire start screen
@@ -222,10 +211,8 @@ void StartScreen::renderStartScreen() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDisable(GL_DEPTH_TEST);
     
-    // Render background and title
     renderTitle();
     
-    // Render all buttons
     for (const auto& button : buttons) {
         renderButton(button);
     }
@@ -233,7 +220,7 @@ void StartScreen::renderStartScreen() {
     glEnable(GL_DEPTH_TEST);
 }
 
-// Destructor: clean up OpenGL resources
+// Destructor
 StartScreen::~StartScreen() {
     glDeleteVertexArrays(1, &quadVAO);
     glDeleteBuffers(1, &quadVBO);
