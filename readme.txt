@@ -4,8 +4,11 @@ A 3D First-Person Shooter (FPS) game written in C++ using OpenGL, GLFW, GLM and 
 ---
 ## Team Members:
 - Member 1: Syed Muhammad Haider Zaidi      HU ID: mz10270
+Part in Project: Camera, Enemy logic bullet, weapon system logic
 - Member 2: Syed Hadi Abbas Naqvi           HU ID: hn10381
+Part in Project: Tracer, Shader, Shooter logic and main integration with all files 
 - Member 3: Ghazi Sibtain                   HU ID: gs10403
+Part in Project: World, Item logic, Start, End, Pause Screen Logic 
 
 ## Instructor: Nadia Nasir
 ---
@@ -172,9 +175,7 @@ shooter_OOP_project-main/
 
 ### Example Build Command (MinGW / PowerShell)
 ```powershell
-g++.exe -g -std=c++17 -I./include -L./lib \\
-  ./src/main.cpp ./src/glad.c -lglfw3dll \\
-  -o ./cutable.exe
+g++ -std=c++17 -Iexternal/glad/include -Iinclude   src/main.cpp src/Camera.cpp src/World.cpp src/Item.cpp src/Enemy.cpp src/Shooter.cpp src/Shader.cpp src/TextRenderer.cpp src/tracer.cpp src/GUI/start_Screen.cpp src/GUI/main_gui.cpp src/GUI/end_Screen.cpp src/GUI/pause_Screen.cpp  src/glad.c  -Llib -lglfw3dll -lopengl32 -lgdi32 -luser32 -lkernel32 -o game.exe
 ```
 
 ### Compilation Flags
@@ -186,7 +187,7 @@ g++.exe -g -std=c++17 -I./include -L./lib \\
 
 ### Running the Game
 ```powershell
-./cutable.exe
+./game.exe
 ```
 
 ---
@@ -264,7 +265,7 @@ g++.exe -g -std=c++17 -I./include -L./lib \\
 4. Health/ammo pickup items
 5. Level progression and difficulty scaling
 6. Optimize enemy count and spawn timing
-
+7. Add text to enhance user experience
 ---
 
 ## Dependencies
@@ -274,7 +275,6 @@ g++.exe -g -std=c++17 -I./include -L./lib \\
 | GLFW         | 3.x       | Window & input management   |
 | GLAD         | generated | OpenGL function loading     |
 | GLM          | header-only | Math (vectors, matrices) |
-| stb_truetype | header-only | Bitmap / font rendering   |
 
 ---
 
